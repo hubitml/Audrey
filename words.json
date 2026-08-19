@@ -1,0 +1,22 @@
+[
+  { "word": "hello", "translation": "cześć", "category": "greetings" },
+  { "word": "goodbye", "translation": "do widzenia", "category": "greetings" },
+  { "word": "please", "translation": "proszę", "category": "greetings" },
+  { "word": "thank you", "translation": "dziękuję", "category": "greetings" },
+  { "word": "yes", "translation": "tak", "category": "greetings" },
+  { "word": "no", "translation": "nie", "category": "greetings" },
+  { "word": "water", "translation": "woda", "category": "food" },
+  { "word": "bread", "translation": "chleb", "category": "food" },
+  { "word": "coffee", "translation": "kawa", "category": "food" },
+  { "word": "apple", "translation": "jabłko", "category": "food" },
+  { "word": "milk", "translation": "mleko", "category": "food" },
+  { "word": "egg", "translation": "jajko", "category": "food" },
+  { "word": "cat", "translation": "kot", "category": "animals" },
+  { "word": "dog", "translation": "pies", "category": "animals" },
+  { "word": "bird", "translation": "ptak", "category": "animals" },
+  { "word": "house", "translation": "dom", "category": "everyday" },
+  { "word": "car", "translation": "samochód", "category": "everyday" },
+  { "word": "friend", "translation": "przyjaciel", "category": "everyday" },
+  { "word": "love", "translation": "miłość", "category": "everyday" },
+  { "word": "today", "translation": "dzisiaj", "category": "everyday" }
+]

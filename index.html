@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Word Drills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --surface:#232E3D;
+    --surface-2:#2C3849;
+    --paper:#EDE6D6;
+    --paper-dim:#B9B2A2;
+    --amber:#E8A33D;
+    --sage:#6FA97A;
+    --rust:#C8563D;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    justify-content:center;
+    min-height:100dvh;
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+    padding:20px 18px 40px;
+    display:flex;
+    flex-direction:column;
+    min-height:100dvh;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:26px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1 span{color:var(--amber);}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-bottom:14px;
+  }
+  /* --- setup screen --- */
+  label.field-label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--amber);
+    margin-bottom:8px;
+  }
+  select{
+    width:100%;
+    padding:14px 12px;
+    border-radius:10px;
+    border:1px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    margin-bottom:18px;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  .mode-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .mode-btn{
+    flex:1;
+    padding:16px 8px;
+    border-radius:10px;
+    border:1.5px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper-dim);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .mode-btn.active{
+    border-color:var(--amber);
+    color:var(--amber);
+    background:rgba(232,163,61,0.08);
+  }
+  .primary-btn{
+    width:100%;
+    padding:16px;
+    border-radius:10px;
+    border:none;
+    background:var(--amber);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    cursor:pointer;
+  }
+  .primary-btn:active{opacity:0.85;}
+  .ghost-btn{
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:1.5px solid var(--surface-2);
+    background:transparent;
+    color:var(--paper-dim);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .hidden{display:none !important;}
+  /* --- progress --- */
+  .progress-bar{
+    height:5px;
+    background:var(--surface-2);
+    border-radius:4px;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--amber);
+    width:0%;
+    transition:width 0.25s ease;
+  }
+  .score-row{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--paper-dim);
+    margin-bottom:16px;
+  }
+  /* --- MC screen --- */
+  .word-display{
+    font-family:'Fraunces',serif;
+    font-size:34px;
+    font-weight:700;
+    text-align:center;
+    padding:30px 10px;
+    margin-bottom:6px;
+  }
+  .word-caption{
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:18px;
+  }
+  .option-btn{
+    width:100%;
+    padding:16px;
+    margin-bottom:10px;
+    border-radius:10px;
+    border:1.5px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    text-align:left;
+    cursor:pointer;
+  }
+  .option-btn.correct{border-color:var(--sage); background:rgba(111,169,122,0.15); color:var(--sage);}
+  .option-btn.wrong{border-color:var(--rust); background:rgba(200,86,61,0.15); color:var(--rust);}
+  .option-btn:disabled{cursor:default;}
+  /* --- match screen --- */
+  .match-grid{
+    display:flex;
+    gap:10px;
+  }
+  .match-col{flex:1; display:flex; flex-direction:column; gap:8px;}
+  .match-item{
+    padding:14px 10px;
+    border-radius:10px;
+    border:1.5px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    text-align:center;
+    cursor:pointer;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    word-break:break-word;
+  }
+  .match-item.selected{border-color:var(--amber); color:var(--amber);}
+  .match-item.matched{border-color:var(--sage); color:var(--sage); background:rgba(111,169,122,0.1); opacity:0.55; cursor:default;}
+  .match-item.wrong-flash{border-color:var(--rust); animation:shake 0.3s;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-4px);}
+    75%{transform:translateX(4px);}
+  }
+  /* --- end screen --- */
+  .end-score{
+    font-family:'Fraunces',serif;
+    font-size:48px;
+    font-weight:700;
+    text-align:center;
+    color:var(--amber);
+    margin:10px 0 2px;
+  }
+  .end-caption{
+    text-align:center;
+    color:var(--paper-dim);
+    font-size:14px;
+    margin-bottom:20px;
+  }
+  footer{
+    margin-top:auto;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--surface-2);
+    padding-top:20px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Word<span>Drills</span></h1>
+    <div class="tag" id="header-tag">setup</div>
+  </header>
+
+  <!-- SETUP SCREEN -->
+  <div class="card" id="screen-setup">
+    <label class="field-label">Category</label>
+    <select id="category-select"></select>
+
+    <label class="field-label">Mode</label>
+    <div class="mode-row">
+      <div class="mode-btn active" data-mode="mc">Multiple Choice</div>
+      <div class="mode-btn" data-mode="match">Matching</div>
+    </div>
+
+    <button class="primary-btn" id="start-btn">Start</button>
+    <div class="tag" id="setup-status" style="margin-top:14px; text-align:center;"></div>
+  </div>
+
+  <!-- MC SCREEN -->
+  <div class="hidden" id="screen-mc">
+    <div class="progress-bar"><div class="progress-fill" id="mc-progress"></div></div>
+    <div class="score-row">
+      <span id="mc-count">0 / 0</span>
+      <span id="mc-score">Score: 0</span>
+    </div>
+    <div class="card">
+      <div class="word-display" id="mc-word"></div>
+      <div class="word-caption" id="mc-category"></div>
+    </div>
+    <div id="mc-options"></div>
+  </div>
+
+  <!-- MATCH SCREEN -->
+  <div class="hidden" id="screen-match">
+    <div class="progress-bar"><div class="progress-fill" id="match-progress"></div></div>
+    <div class="score-row">
+      <span id="match-count">Round 1</span>
+      <span id="match-score">Score: 0</span>
+    </div>
+    <div class="match-grid">
+      <div class="match-col" id="match-left"></div>
+      <div class="match-col" id="match-right"></div>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="hidden card" id="screen-end">
+    <div class="tag" style="text-align:center;">session complete</div>
+    <div class="end-score" id="end-score">0%</div>
+    <div class="end-caption" id="end-caption"></div>
+    <button class="primary-btn" id="replay-btn">Play Again</button>
+    <button class="ghost-btn" id="change-settings-btn">Change Settings</button>
+  </div>
+
+  <footer>made for two — edit words in editor.html</footer>
+</div>
+
+<script>
+let ALL_WORDS = [];
+let settings = { category: 'all', mode: 'mc' };
+
+const el = id => document.getElementById(id);
+
+// -------- load data --------
+fetch('words.json')
+  .then(r => r.json())
+  .then(data => {
+    ALL_WORDS = data;
+    populateCategories();
+    el('setup-status').textContent = ALL_WORDS.length + ' words loaded';
+  })
+  .catch(() => {
+    el('setup-status').textContent = 'Could not load words.json — check it is in the same folder.';
+  });
+
+function populateCategories(){
+  const cats = [...new Set(ALL_WORDS.map(w => w.category))].sort();
+  const sel = el('category-select');
+  sel.innerHTML = '<option value="all">All categories</option>' +
+    cats.map(c => `<option value="${c}">${capitalize(c)}</option>`).join('');
+}
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+function shuffle(arr){ return [...arr].sort(() => Math.random() - 0.5); }
+
+// -------- mode toggle --------
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.mode = btn.dataset.mode;
+  });
+});
+
+// -------- start --------
+el('start-btn').addEventListener('click', () => {
+  settings.category = el('category-select').value;
+  const pool = settings.category === 'all'
+    ? ALL_WORDS
+    : ALL_WORDS.filter(w => w.category === settings.category);
+
+  if (pool.length < 2){
+    el('setup-status').textContent = 'Need at least 2 words in this category.';
+    return;
+  }
+
+  if (settings.mode === 'mc') startMC(pool);
+  else startMatch(pool);
+});
+
+function showScreen(name){
+  ['setup','mc','match','end'].forEach(s => el('screen-' + s).classList.add('hidden'));
+  el('screen-' + name).classList.remove('hidden');
+  el('header-tag').textContent = name === 'setup' ? 'setup' : name === 'end' ? 'done' : settings.mode;
+}
+
+// ================= MULTIPLE CHOICE =================
+let mcQueue = [], mcIndex = 0, mcScore = 0, mcPool = [];
+
+function startMC(pool){
+  mcPool = pool;
+  mcQueue = shuffle(pool);
+  mcIndex = 0;
+  mcScore = 0;
+  showScreen('mc');
+  renderMC();
+}
+
+function renderMC(){
+  if (mcIndex >= mcQueue.length){
+    endSession(mcScore, mcQueue.length);
+    return;
+  }
+  const item = mcQueue[mcIndex];
+  el('mc-word').textContent = item.word;
+  el('mc-category').textContent = item.category;
+  el('mc-count').textContent = (mcIndex + 1) + ' / ' + mcQueue.length;
+  el('mc-score').textContent = 'Score: ' + mcScore;
+  el('mc-progress').style.width = ((mcIndex) / mcQueue.length * 100) + '%';
+
+  // build options: correct + 3 distractors from full pool
+  const distractors = shuffle(mcPool.filter(w => w.translation !== item.translation)).slice(0, 3);
+  const options = shuffle([item, ...distractors]);
+
+  const container = el('mc-options');
+  container.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt.translation;
+    btn.addEventListener('click', () => handleMCAnswer(btn, opt, item, container));
+    container.appendChild(btn);
+  });
+}
+
+function handleMCAnswer(btn, opt, correctItem, container){
+  const buttons = container.querySelectorAll('.option-btn');
+  buttons.forEach(b => b.disabled = true);
+  if (opt.translation === correctItem.translation){
+    btn.classList.add('correct');
+    mcScore++;
+  } else {
+    btn.classList.add('wrong');
+    buttons.forEach(b => { if (b.textContent === correctItem.translation) b.classList.add('correct'); });
+  }
+  setTimeout(() => { mcIndex++; renderMC(); }, 650);
+}
+
+// ================= MATCHING =================
+let matchPool = [], matchRoundWords = [], matchScore = 0, matchTotal = 0;
+let matchLeftSel = null, matchRightSel = null, matchedCount = 0;
+const ROUND_SIZE = 6;
+
+function startMatch(pool){
+  matchPool = shuffle(pool);
+  matchScore = 0;
+  matchTotal = 0;
+  showScreen('match');
+  nextMatchRound();
+}
+
+function nextMatchRound(){
+  if (matchPool.length === 0){
+    endSession(matchScore, matchTotal);
+    return;
+  }
+  matchRoundWords = matchPool.splice(0, ROUND_SIZE);
+  matchedCount = 0;
+  matchLeftSel = null;
+  matchRightSel = null;
+  renderMatch();
+}
+
+function renderMatch(){
+  const total = matchRoundWords.length;
+  matchTotal = matchTotal; // running total updated on match
+  el('match-count').textContent = 'Round: ' + total + ' pairs, ' + (matchPool.length) + ' left after';
+  el('match-score').textContent = 'Score: ' + matchScore;
+  el('match-progress').style.width = (matchedCount / total * 100) + '%';
+
+  const leftItems = shuffle(matchRoundWords);
+  const rightItems = shuffle(matchRoundWords);
+
+  const leftCol = el('match-left');
+  const rightCol = el('match-right');
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+
+  leftItems.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.word;
+    d.dataset.key = item.word + '|' + item.translation;
+    d.addEventListener('click', () => selectMatch('left', d, item));
+    leftCol.appendChild(d);
+  });
+  rightItems.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.translation;
+    d.dataset.key = item.word + '|' + item.translation;
+    d.addEventListener('click', () => selectMatch('right', d, item));
+    rightCol.appendChild(d);
+  });
+}
+
+function selectMatch(side, node, item){
+  if (node.classList.contains('matched')) return;
+
+  if (side === 'left'){
+    if (matchLeftSel) matchLeftSel.node.classList.remove('selected');
+    matchLeftSel = { node, item };
+    node.classList.add('selected');
+  } else {
+    if (matchRightSel) matchRightSel.node.classList.remove('selected');
+    matchRightSel = { node, item };
+    node.classList.add('selected');
+  }
+
+  if (matchLeftSel && matchRightSel){
+    const isMatch = matchLeftSel.item.word === matchRightSel.item.word;
+    if (isMatch){
+      matchLeftSel.node.classList.remove('selected');
+      matchRightSel.node.classList.remove('selected');
+      matchLeftSel.node.classList.add('matched');
+      matchRightSel.node.classList.add('matched');
+      matchScore++;
+      matchTotal++;
+      matchedCount++;
+      matchLeftSel = null;
+      matchRightSel = null;
+      el('match-progress').style.width = (matchedCount / matchRoundWords.length * 100) + '%';
+      el('match-score').textContent = 'Score: ' + matchScore;
+      if (matchedCount === matchRoundWords.length){
+        setTimeout(nextMatchRound, 500);
+      }
+    } else {
+      matchTotal++;
+      const l = matchLeftSel.node, r = matchRightSel.node;
+      l.classList.add('wrong-flash');
+      r.classList.add('wrong-flash');
+      setTimeout(() => {
+        l.classList.remove('selected','wrong-flash');
+        r.classList.remove('selected','wrong-flash');
+        matchLeftSel = null;
+        matchRightSel = null;
+      }, 350);
+    }
+  }
+}
+
+// ================= END =================
+function endSession(score, total){
+  showScreen('end');
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  el('end-score').textContent = pct + '%';
+  el('end-caption').textContent = score + ' correct out of ' + total;
+}
+
+el('replay-btn').addEventListener('click', () => {
+  const pool = settings.category === 'all'
+    ? ALL_WORDS
+    : ALL_WORDS.filter(w => w.category === settings.category);
+  if (settings.mode === 'mc') startMC(pool);
+  else startMatch(pool);
+});
+
+el('change-settings-btn').addEventListener('click', () => showScreen('setup'));
+</script>
+</body>
+</html>
