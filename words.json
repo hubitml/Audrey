@@ -53,5 +53,40 @@
     "word": "Krewetki",
     "translation": "Shrimps",
     "category": "Hospitality"
+  },
+  {
+    "word": "Zielony",
+    "translation": "Green",
+    "category": "Colors"
+  },
+  {
+    "word": "Czerwony",
+    "translation": "Red",
+    "category": "Colors"
+  },
+  {
+    "word": "Czarny",
+    "translation": "Black",
+    "category": "Colors"
+  },
+  {
+    "word": "Biały",
+    "translation": "White",
+    "category": "Colors"
+  },
+  {
+    "word": "Niebieski",
+    "translation": "Blue",
+    "category": "Colors"
+  },
+  {
+    "word": "Zółty",
+    "translation": "Yellow",
+    "category": "Colors"
+  },
+  {
+    "word": "Różowy",
+    "translation": "Pink",
+    "category": "Colors"
   }
 ]
