@@ -88,5 +88,50 @@
     "word": "Różowy",
     "translation": "Pink",
     "category": "Colors"
+  },
+  {
+    "word": "Ciało",
+    "translation": "Body",
+    "category": "Body"
+  },
+  {
+    "word": "Oczy",
+    "translation": "Eyes",
+    "category": "Body"
+  },
+  {
+    "word": "Głowa",
+    "translation": "Head",
+    "category": "Body"
+  },
+  {
+    "word": "Dupa",
+    "translation": "Ass",
+    "category": "Body"
+  },
+  {
+    "word": "Tyłek",
+    "translation": "Butt",
+    "category": "Body"
+  },
+  {
+    "word": "Ręce",
+    "translation": "Hands",
+    "category": "Body"
+  },
+  {
+    "word": "Stopy",
+    "translation": "Feet",
+    "category": "Body"
+  },
+  {
+    "word": "Nos",
+    "translation": "Nose",
+    "category": "Body"
+  },
+  {
+    "word": "Usta",
+    "translation": "Mouth",
+    "category": "Body"
   }
 ]
