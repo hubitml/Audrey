@@ -203,5 +203,20 @@
     "word": "Włosy",
     "translation": "Hair",
     "category": "Body"
+  },
+  {
+    "word": "Fioletowy",
+    "translation": "Violet",
+    "category": "Colors"
+  },
+  {
+    "word": "Pomarańczowy",
+    "translation": "Orange",
+    "category": "Colors"
+  },
+  {
+    "word": "Brązowy",
+    "translation": "Brown",
+    "category": "Colors"
   }
 ]
