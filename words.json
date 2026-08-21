@@ -193,5 +193,15 @@
     "word": "Miłego dnia",
     "translation": "Have a nice day",
     "category": "Greetings"
+  },
+  {
+    "word": "Nogi",
+    "translation": "Legs",
+    "category": "Body"
+  },
+  {
+    "word": "Włosy",
+    "translation": "Hair",
+    "category": "Body"
   }
 ]
