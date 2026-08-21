@@ -133,5 +133,65 @@
     "word": "Usta",
     "translation": "Mouth",
     "category": "Body"
+  },
+  {
+    "word": "Dzień Dobry",
+    "translation": "Hello",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dobry Wieczór",
+    "translation": "Good evening",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dobranoc",
+    "translation": "Goodnight",
+    "category": "Greetings"
+  },
+  {
+    "word": "Cześć",
+    "translation": "Hi",
+    "category": "Greetings"
+  },
+  {
+    "word": "Smacznego",
+    "translation": "[wishing a good meal]",
+    "category": "Greetings"
+  },
+  {
+    "word": "Na zdrowie",
+    "translation": "Bless you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Przepraszam",
+    "translation": "Sorry/Excuse me",
+    "category": "Greetings"
+  },
+  {
+    "word": "Do widzenia",
+    "translation": "Goodbye",
+    "category": "Greetings"
+  },
+  {
+    "word": "Do zobaczenia",
+    "translation": "See you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Proszę",
+    "translation": "Please",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dziekuję",
+    "translation": "Thank you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Miłego dnia",
+    "translation": "Have a nice day",
+    "category": "Greetings"
   }
 ]
