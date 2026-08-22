@@ -943,4 +943,412 @@ function showScreen(name) {
   ['login','setup','mc','match','end'].forEach(s => el('screen-' + s).classList.add('hidden'));
   el('screen-' + name).classList.remove('hidden');
   el('header-tag').textContent = (name === 'login') ? 'login' : (name === 'setup' ? currentUser || 'setup' : name);
-  el('history
+  el('history-card').classList.toggle('hidden', name !== 'setup');
+}
+
+// -------------------- MODE & MC TYPE TOGGLES --------------------
+document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.mode = btn.dataset.mode;
+    el('mc-type-row').classList.toggle('hidden', settings.mode !== 'mc');
+    validateCategories();
+  });
+});
+
+document.querySelectorAll('.mc-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mc-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.mcType = btn.dataset.mctype;
+    validateCategories();
+  });
+});
+
+// -------------------- START --------------------
+el('start-btn').addEventListener('click', () => {
+  if (!currentUser) { return; }
+  if (!statsLoaded){
+    el('setup-status').textContent = 'Still loading progress, one sec...';
+    el('setup-status').className = 'status-msg';
+    return;
+  }
+  if (settings.categories.length === 0){
+    el('setup-status').textContent = 'Select at least one category.';
+    el('setup-status').className = 'status-msg error';
+    return;
+  }
+  
+  // Category mode requires at least 4 categories
+  if (settings.mcType === 'category' && settings.categories.length < 4) {
+    el('setup-status').textContent = 'Category mode requires at least 4 categories.';
+    el('setup-status').className = 'status-msg error';
+    return;
+  }
+  
+  const pool = getActivePool();
+  if (settings.mode === 'mc'){
+    if (pool.length < 2){
+      el('setup-status').textContent = 'Need at least 2 words in selected categories.';
+      el('setup-status').className = 'status-msg error';
+      return;
+    }
+    startMC(pool);
+  } else {
+    if (pool.length < ROUND_SIZE){
+      el('setup-status').textContent = 'Need at least ' + ROUND_SIZE + ' words for matching.';
+      el('setup-status').className = 'status-msg error';
+      return;
+    }
+    startMatch(pool);
+  }
+});
+
+// ================= MULTIPLE CHOICE (UPDATED) =================
+let mcQueue = [], mcIndex = 0, mcScore = 0, mcTotalAttempts = 0, mcHearts = MAX_HEARTS;
+let mcCurrentItem = null, mcCurrentOptions = [], mcAnswered = false;
+let mcPool = [], mcActiveCats = [];
+let mcCorrectAnswer = null;
+
+function startMC(pool) {
+  mcPool = pool;
+  mcActiveCats = settings.categories.slice();
+  mcQueue = weightedSampleWithoutReplacement(pool, w => selectionWeight(w, pool.length), 1000); // Large enough for endless
+  mcIndex = 0;
+  mcScore = 0;
+  mcTotalAttempts = 0;
+  mcHearts = MAX_HEARTS;
+  mcAnswered = false;
+  showScreen('mc');
+  renderMC();
+}
+
+function renderMC() {
+  if (mcIndex >= mcQueue.length) {
+    // Refill queue with more words
+    const moreWords = weightedSampleWithoutReplacement(mcPool, w => selectionWeight(w, mcPool.length), 100);
+    mcQueue = mcQueue.concat(moreWords);
+  }
+  
+  if (mcHearts <= 0) {
+    endSession(mcScore, mcTotalAttempts);
+    return;
+  }
+  
+  incrementCategoryRounds(mcActiveCats, 1);
+  mcCurrentItem = mcQueue[mcIndex];
+  mcAnswered = false;
+  
+  const isCategoryMode = settings.mcType === 'category';
+  const isReversed = settings.mcType === 'reversed';
+  
+  // Display the word
+  if (isCategoryMode) {
+    el('mc-word').textContent = mcCurrentItem.word;
+  } else if (isReversed) {
+    el('mc-word').textContent = mcCurrentItem.translation;
+  } else {
+    el('mc-word').textContent = mcCurrentItem.word;
+  }
+  
+  // Category hidden initially
+  el('mc-category').textContent = '';
+  el('mc-category').className = 'word-caption';
+  el('mc-reveal-container').innerHTML = '';
+  
+  el('mc-count').textContent = 'Question ' + (mcIndex + 1);
+  updateHeartsDisplay();
+  el('mc-score').textContent = 'Score: ' + mcScore;
+  el('mc-progress').style.width = Math.min(100, (mcIndex / (mcIndex + 20)) * 100) + '%';
+  
+  // Build options
+  let options = [];
+  if (isCategoryMode) {
+    // Category mode: show category names
+    const allCats = settings.categories.slice();
+    const correctCat = mcCurrentItem.category;
+    
+    let optionCats;
+    if (allCats.length === 4) {
+      // Exactly 4 categories - show all in fixed alphabetical order
+      optionCats = allCats.sort();
+    } else {
+      // More than 4 - pick 4 random including correct
+      const others = allCats.filter(c => c !== correctCat);
+      const randomOthers = shuffle(others).slice(0, 3);
+      optionCats = shuffle([correctCat, ...randomOthers]);
+    }
+    
+    options = optionCats.map(cat => ({
+      text: capitalize(cat),
+      value: cat,
+      isCorrect: cat === correctCat
+    }));
+  } else {
+    // Translation mode (normal or reversed)
+    const correctTranslation = isReversed ? mcCurrentItem.word : mcCurrentItem.translation;
+    const distractors = shuffle(mcPool.filter(w => {
+      const trans = isReversed ? w.word : w.translation;
+      return trans !== correctTranslation;
+    })).slice(0, 3);
+    
+    const optionItems = shuffle([mcCurrentItem, ...distractors]);
+    options = optionItems.map(item => ({
+      text: isReversed ? item.word : item.translation,
+      value: item,
+      isCorrect: (isReversed ? item.word : item.translation) === correctTranslation
+    }));
+  }
+  
+  mcCurrentOptions = options;
+  mcCorrectAnswer = options.find(o => o.isCorrect);
+  
+  const container = el('mc-options');
+  container.innerHTML = '';
+  options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt.text;
+    btn.dataset.index = idx;
+    btn.addEventListener('click', () => handleMCAnswer(btn, idx));
+    container.appendChild(btn);
+  });
+}
+
+function handleMCAnswer(btn, index) {
+  if (mcAnswered) return;
+  const option = mcCurrentOptions[index];
+  const isCorrect = option.isCorrect;
+  
+  // Record the attempt
+  const isCategoryMode = settings.mcType === 'category';
+  
+  // If this is the first attempt for this question
+  const alreadyAttempted = mcAnswered;
+  if (!alreadyAttempted) {
+    mcAnswered = true;
+    mcTotalAttempts++;
+    
+    if (isCorrect) {
+      // Correct on first try
+      btn.classList.add('correct');
+      mcScore++;
+      recordWordAttempt(mcCurrentItem, true, isCategoryMode);
+      disableAllOptions();
+      setTimeout(() => {
+        mcIndex++;
+        renderMC();
+      }, 600);
+    } else {
+      // Wrong on first try - lose a heart
+      mcHearts--;
+      updateHeartsDisplay();
+      btn.classList.add('wrong');
+      
+      // Show the reveal button
+      const revealContainer = el('mc-reveal-container');
+      revealContainer.innerHTML = '';
+      const revealBtn = document.createElement('button');
+      revealBtn.className = 'reveal-btn';
+      revealBtn.textContent = '🔍 Show Category';
+      revealBtn.addEventListener('click', () => {
+        showCategory();
+        revealBtn.disabled = true;
+        revealBtn.textContent = '✓ Category Revealed';
+        revealBtn.style.opacity = '0.6';
+      });
+      revealContainer.appendChild(revealBtn);
+      
+      // Mark this option as used
+      btn.classList.add('used');
+      btn.disabled = true;
+      
+      // Check if hearts are now 0
+      if (mcHearts <= 0) {
+        // Game over - finish current question then end
+        setTimeout(() => {
+          // Show correct answer
+          showCorrectAnswer();
+          disableAllOptions();
+          setTimeout(() => {
+            endSession(mcScore, mcTotalAttempts);
+          }, 800);
+        }, 400);
+        return;
+      }
+      
+      // Allow more attempts on the same question
+      mcAnswered = false; // Allow more attempts
+      // But mark that we've recorded this wrong attempt already
+      btn.dataset.wrongRecorded = 'true';
+      recordWordAttempt(mcCurrentItem, false, isCategoryMode);
+    }
+  }
+}
+
+function showCategory() {
+  const categoryEl = el('mc-category');
+  categoryEl.textContent = mcCurrentItem.category;
+  categoryEl.className = 'word-caption revealed';
+}
+
+function showCorrectAnswer() {
+  const buttons = el('mc-options').querySelectorAll('.option-btn');
+  buttons.forEach((btn, idx) => {
+    if (mcCurrentOptions[idx].isCorrect) {
+      btn.classList.add('correct');
+    }
+    btn.disabled = true;
+  });
+}
+
+function disableAllOptions() {
+  el('mc-options').querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+}
+
+function updateHeartsDisplay() {
+  const container = el('mc-hearts');
+  let html = '';
+  for (let i = 0; i < MAX_HEARTS; i++) {
+    html += `<span class="${i < mcHearts ? 'heart-filled' : 'heart-empty'}">♥</span>`;
+  }
+  container.innerHTML = html;
+}
+
+// ================= MATCHING (unchanged) =================
+let matchPool = [], matchRoundWords = [], matchScore = 0, matchTotal = 0, matchActiveCats = [];
+let matchLeftSel = null, matchRightSel = null, matchedCount = 0;
+
+function startMatch(pool) {
+  matchActiveCats = settings.categories.slice();
+  const targetLen = Math.floor(Math.min(1000, pool.length) / ROUND_SIZE) * ROUND_SIZE;
+  matchPool = weightedSampleWithoutReplacement(pool, w => selectionWeight(w, pool.length), targetLen);
+  matchScore = 0;
+  matchTotal = 0;
+  showScreen('match');
+  nextMatchRound();
+}
+
+function nextMatchRound() {
+  if (matchPool.length < ROUND_SIZE) {
+    endSession(matchScore, matchTotal);
+    return;
+  }
+  matchRoundWords = matchPool.splice(0, ROUND_SIZE);
+  incrementCategoryRounds(matchActiveCats, MATCH_ROUND_WORTH);
+  matchedCount = 0;
+  matchLeftSel = null;
+  matchRightSel = null;
+  renderMatch();
+}
+
+function renderMatch() {
+  const total = matchRoundWords.length;
+  el('match-count').textContent = 'Round: ' + total + ' pairs, ' + (matchPool.length) + ' left';
+  el('match-score').textContent = 'Score: ' + matchScore;
+  el('match-progress').style.width = (matchedCount / total * 100) + '%';
+
+  const leftItems = shuffle(matchRoundWords);
+  const rightItems = shuffle(matchRoundWords);
+
+  const leftCol = el('match-left');
+  const rightCol = el('match-right');
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+
+  leftItems.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.word;
+    d.dataset.key = item.word + '|' + item.translation;
+    d.addEventListener('click', () => selectMatch('left', d, item));
+    leftCol.appendChild(d);
+  });
+  rightItems.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.translation;
+    d.dataset.key = item.word + '|' + item.translation;
+    d.addEventListener('click', () => selectMatch('right', d, item));
+    rightCol.appendChild(d);
+  });
+}
+
+function selectMatch(side, node, item) {
+  if (node.classList.contains('matched')) return;
+
+  if (side === 'left') {
+    if (matchLeftSel) matchLeftSel.node.classList.remove('selected');
+    matchLeftSel = { node, item };
+    node.classList.add('selected');
+  } else {
+    if (matchRightSel) matchRightSel.node.classList.remove('selected');
+    matchRightSel = { node, item };
+    node.classList.add('selected');
+  }
+
+  if (matchLeftSel && matchRightSel) {
+    const isMatch = matchLeftSel.item.word === matchRightSel.item.word;
+    const leftItem = matchLeftSel.item, rightItem = matchRightSel.item;
+    if (isMatch) {
+      matchLeftSel.node.classList.remove('selected');
+      matchRightSel.node.classList.remove('selected');
+      matchLeftSel.node.classList.add('matched');
+      matchRightSel.node.classList.add('matched');
+      matchScore++;
+      matchTotal++;
+      matchedCount++;
+      matchLeftSel = null;
+      matchRightSel = null;
+      recordWordAttempt(leftItem, true);
+      el('match-progress').style.width = (matchedCount / matchRoundWords.length * 100) + '%';
+      el('match-score').textContent = 'Score: ' + matchScore;
+      if (matchedCount === matchRoundWords.length) {
+        setTimeout(nextMatchRound, 500);
+      }
+    } else {
+      matchTotal++;
+      recordWordAttempt(leftItem, false);
+      recordWordAttempt(rightItem, false);
+      const l = matchLeftSel.node, r = matchRightSel.node;
+      l.classList.add('wrong-flash');
+      r.classList.add('wrong-flash');
+      setTimeout(() => {
+        l.classList.remove('selected','wrong-flash');
+        r.classList.remove('selected','wrong-flash');
+        matchLeftSel = null;
+        matchRightSel = null;
+      }, 350);
+    }
+  }
+}
+
+// ================= END =================
+function endSession(score, total) {
+  showScreen('end');
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  el('end-score').textContent = pct + '%';
+  el('end-caption').textContent = score + ' correct out of ' + total + ' questions';
+  
+  const modeType = settings.mode === 'mc' ? settings.mcType : null;
+  recordSession(settings.mode, settings.categories.slice(), score, total, modeType);
+  saveWordStatsToFirestore();
+}
+
+el('replay-btn').addEventListener('click', () => {
+  if (!currentUser) return;
+  const pool = getActivePool();
+  if (settings.mode === 'mc') startMC(pool);
+  else startMatch(pool);
+});
+
+el('change-settings-btn').addEventListener('click', () => showScreen('setup'));
+
+// -------------------- INITIAL SETUP --------------------
+// Set default MC type to normal
+document.querySelector('.mc-type-btn[data-mctype="normal"]')?.classList.add('active');
+settings.mcType = 'normal';
+</script>
+</body>
+</html>
