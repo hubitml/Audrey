@@ -49,7 +49,7 @@
     margin-top:12px;
   }
   label.field-label:first-child{margin-top:0;}
-  input, textarea{
+  input, textarea, select{
     width:100%;
     padding:12px;
     border-radius:8px;
@@ -59,6 +59,7 @@
     font-family:'Inter',sans-serif;
     font-size:15px;
   }
+  select{ appearance:none; -webkit-appearance:none; cursor:pointer; }
   textarea{ font-family:'IBM Plex Mono',monospace; font-size:13px; min-height:90px; resize:vertical; }
   .row{ display:flex; gap:8px; }
   .row > div{ flex:1; }
@@ -70,10 +71,12 @@
     border:none;
     padding:12px 16px;
     cursor:pointer;
+    transition:all 0.2s;
   }
   button:disabled{ opacity:0.5; cursor:not-allowed; }
   .btn-primary{ background:var(--amber); color:var(--ink); }
   .btn-secondary{ background:var(--surface-2); color:var(--paper); border:1px solid #3a4759; }
+  .btn-secondary.active{ border-color:var(--amber); color:var(--amber); background:rgba(232,163,61,0.08); }
   .btn-github{ background:var(--sage); color:var(--ink); }
   .btn-row{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
   table{ width:100%; border-collapse:collapse; margin-top:6px; font-size:14px; }
@@ -104,11 +107,12 @@
   .status{
     font-family:'IBM Plex Mono',monospace;
     font-size:12px;
-    color:var(--sage);
+    color:var(--paper-dim);
     margin-top:10px;
-    min-height:16px;
+    min-height:20px;
   }
   .status.error{ color:var(--rust); }
+  .status.success{ color:var(--sage); }
   a.back-link{
     color:var(--paper-dim);
     font-size:12px;
@@ -154,7 +158,9 @@
   }
   .voice-actions button:hover{ border-color:var(--paper-dim); }
   .voice-actions .play-btn{color:var(--sage);}
+  .voice-actions .play-btn:hover{border-color:var(--sage);}
   .voice-actions .delete-btn{color:var(--rust);}
+  .voice-actions .delete-btn:hover{border-color:var(--rust);}
   .recording-indicator{
     display:inline-block;
     width:10px;
@@ -169,47 +175,32 @@
     0%,100%{opacity:1;}
     50%{opacity:0.3;}
   }
-  .voice-count{ font-size:13px; color:var(--paper-dim); margin-bottom:10px; }
+  .voice-count{ font-size:13px; color:var(--paper-dim); margin-bottom:6px; }
   .voice-count strong{color:var(--paper);}
-  .search-box{
-    width:100%;
-    padding:10px 12px;
-    border-radius:8px;
-    border:1px solid var(--surface-2);
-    background:var(--surface-2);
-    color:var(--paper);
-    font-family:'Inter',sans-serif;
-    font-size:14px;
-    margin-bottom:10px;
-  }
-  .search-box::placeholder{color:var(--paper-dim);}
-  .search-box:focus{outline:none; border-color:var(--amber);}
   .empty-state{
     text-align:center;
     color:var(--paper-dim);
     font-size:13px;
     padding:20px 0;
   }
-  .voice-progress{
-    font-size:12px;
-    color:var(--paper-dim);
-    margin-bottom:8px;
-  }
-  .word-suggestion{
-    padding:4px 10px;
+  .voice-progress-bar{
+    height:4px;
     background:var(--surface-2);
-    border-radius:6px;
-    margin:2px 4px 2px 0;
-    display:inline-block;
-    cursor:pointer;
-    font-size:13px;
-    transition:all 0.2s;
+    border-radius:2px;
+    margin-bottom:14px;
+    overflow:hidden;
   }
-  .word-suggestion:hover{
-    background:var(--amber);
-    color:var(--ink);
+  .voice-progress-fill{
+    height:100%;
+    background:var(--sage);
+    width:0%;
+    transition:width 0.3s;
   }
-  .suggestions{ margin:6px 0 10px; display:flex; flex-wrap:wrap; gap:4px; }
+  .filter-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .filter-row button{ flex:1; padding:8px; font-size:13px; }
+  .voice-select-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .voice-select-row select{ flex:3; }
+  .voice-select-row button{ flex:1; min-width:80px; }
 </style>
 </head>
 <body>
@@ -273,18 +264,25 @@ Chicken">Topic: </textarea>
   <!-- ===== VOICE MANAGER ===== -->
   <div class="card">
     <label class="field-label">Voice recordings</label>
-    <div class="voice-count"><strong id="voice-total">0</strong> recordings</div>
-
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-      <input id="voice-word-input" placeholder="Word (e.g. kot)" style="flex:2; min-width:100px;">
-      <input id="voice-translation-input" placeholder="Translation (e.g. cat)" style="flex:2; min-width:100px;">
-      <button class="btn-primary" id="voice-record-btn" style="flex:1; min-width:80px;">🔴 Record</button>
+    <div class="voice-count"><strong id="voice-total">0</strong> / <strong id="voice-total-words">0</strong> words recorded</div>
+    
+    <div class="voice-progress-bar">
+      <div class="voice-progress-fill" id="voice-progress-bar"></div>
     </div>
 
-    <div id="voice-suggestions" class="suggestions"></div>
-    <div id="voice-status" class="status"></div>
+    <div class="voice-select-row">
+      <select id="voice-word-select">
+        <option value="">Select a word to record...</option>
+      </select>
+      <button class="btn-primary" id="voice-record-btn">🔴 Record</button>
+    </div>
 
-    <input class="search-box" id="voice-search" placeholder="Search recordings...">
+    <div class="filter-row">
+      <button class="btn-secondary active" id="voice-filter-unrecorded">🎯 Unrecorded only</button>
+      <button class="btn-secondary" id="voice-filter-all">📋 All words</button>
+    </div>
+
+    <div id="voice-status" class="status"></div>
     <div id="voice-list"></div>
 
     <div class="btn-row">
@@ -308,10 +306,20 @@ Chicken">Topic: </textarea>
 
 <script>
 // ================================================================
+//  UTILITY
+// ================================================================
+const Utils = {
+  wordKey: (item) => item.word + '|' + item.translation,
+  escapeAttr: (s) => String(s || '').replace(/"/g, '&quot;'),
+  capitalize: (s) => s.charAt(0).toUpperCase() + s.slice(1)
+};
+
+const el = id => document.getElementById(id);
+
+// ================================================================
 //  WORD MANAGER
 // ================================================================
 let words = [];
-const el = id => document.getElementById(id);
 
 function refreshTable(){
   const body = el('word-table-body');
@@ -319,9 +327,9 @@ function refreshTable(){
   words.forEach((w, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input data-i="${i}" data-field="word" value="${escapeAttr(w.word)}"></td>
-      <td><input data-i="${i}" data-field="translation" value="${escapeAttr(w.translation)}"></td>
-      <td><input data-i="${i}" data-field="category" value="${escapeAttr(w.category)}"></td>
+      <td><input data-i="${i}" data-field="word" value="${Utils.escapeAttr(w.word)}"></td>
+      <td><input data-i="${i}" data-field="translation" value="${Utils.escapeAttr(w.translation)}"></td>
+      <td><input data-i="${i}" data-field="category" value="${Utils.escapeAttr(w.category)}"></td>
       <td><button class="del-btn" data-i="${i}">Delete</button></td>
     `;
     body.appendChild(tr);
@@ -331,12 +339,16 @@ function refreshTable(){
       const i = e.target.dataset.i, field = e.target.dataset.field;
       words[i][field] = e.target.value;
       refreshCategoryList();
+      populateWordSelect();
+      updateVoiceCount();
     });
   });
   body.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       words.splice(e.target.dataset.i, 1);
       refreshTable();
+      populateWordSelect();
+      updateVoiceCount();
     });
   });
   el('word-count').textContent = words.length + ' word' + (words.length === 1 ? '' : 's');
@@ -345,11 +357,7 @@ function refreshTable(){
 
 function refreshCategoryList(){
   const cats = [...new Set(words.map(w => w.category).filter(Boolean))];
-  el('category-list').innerHTML = cats.map(c => `<option value="${escapeAttr(c)}">`).join('');
-}
-
-function escapeAttr(s){
-  return String(s || '').replace(/"/g, '&quot;');
+  el('category-list').innerHTML = cats.map(c => `<option value="${Utils.escapeAttr(c)}">`).join('');
 }
 
 // ================================================================
@@ -399,6 +407,8 @@ el('github-load-btn').addEventListener('click', async () => {
     const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
     words = JSON.parse(decoded);
     refreshTable();
+    populateWordSelect();
+    updateVoiceCount();
     status.textContent = `Loaded ${words.length} words.`;
     status.className = 'status';
   } catch (err) {
@@ -483,6 +493,8 @@ el('table-import-btn').addEventListener('click', () => {
   if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
   words = words.concat(parsed);
   refreshTable();
+  populateWordSelect();
+  updateVoiceCount();
   el('table-status').textContent = 'Added ' + parsed.length + ' words.';
   el('table-input').value = 'Topic: ';
 });
@@ -492,6 +504,8 @@ el('table-replace-btn').addEventListener('click', () => {
   if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
   words = parsed;
   refreshTable();
+  populateWordSelect();
+  updateVoiceCount();
   el('table-status').textContent = 'Replaced with ' + parsed.length + ' words.';
   el('table-input').value = 'Topic: ';
 });
@@ -509,6 +523,8 @@ el('add-btn').addEventListener('click', () => {
   el('new-translation').value = '';
   el('new-category').value = '';
   refreshTable();
+  populateWordSelect();
+  updateVoiceCount();
 });
 
 // ================================================================
@@ -654,105 +670,117 @@ const VoiceManager = {
 };
 
 // ================================================================
-//  VOICE UI
+//  VOICE UI - REDESIGNED
 // ================================================================
 let voiceRecordings = [];
 let voiceIsRecording = false;
 let voicePending = null;
+let voiceFilter = 'unrecorded';
 
 async function loadVoiceRecordings() {
   voiceRecordings = await VoiceManager.getAllRecordings();
+  populateWordSelect();
   renderVoiceList();
   updateVoiceCount();
 }
 
-function renderVoiceList(filter = '') {
-  const container = el('voice-list');
-  const search = filter.toLowerCase().trim();
-  let filtered = voiceRecordings;
-  if (search) {
-    filtered = voiceRecordings.filter(r =>
-      r.word.toLowerCase().includes(search) ||
-      r.translation.toLowerCase().includes(search)
-    );
-  }
+function populateWordSelect() {
+  const select = el('voice-word-select');
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">Select a word to record...</option>';
+  
+  const wordsToShow = voiceFilter === 'all' 
+    ? words 
+    : words.filter(w => !voiceRecordings.some(r => r.wordKey === Utils.wordKey(w)));
+  
+  wordsToShow.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = Utils.wordKey(w);
+    opt.textContent = `${w.word} → ${w.translation} [${w.category}]`;
+    if (opt.value === currentVal) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
 
-  if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state">${voiceRecordings.length === 0 ? 'No recordings yet.' : 'No matching recordings.'}</div>`;
+function renderVoiceList() {
+  const container = el('voice-list');
+  
+  if (voiceRecordings.length === 0) {
+    container.innerHTML = `<div class="empty-state">No recordings yet. Select a word above and click Record.</div>`;
     return;
   }
 
-  container.innerHTML = filtered.map(r => `
+  container.innerHTML = voiceRecordings.map(r => {
+    const wordObj = words.find(w => Utils.wordKey(w) === r.wordKey);
+    const category = wordObj ? wordObj.category : r.category;
+    
+    return `
     <div class="voice-item">
       <div>
         <span class="voice-word">${r.word}</span>
         <span class="voice-meta">${r.translation}</span>
-        <span class="voice-meta">[${r.category}]</span>
+        <span class="voice-meta">[${category}]</span>
+        <span class="voice-meta" style="color:var(--sage);">✓ recorded</span>
       </div>
       <div class="voice-actions">
         <button class="play-btn" onclick="window.playVoice('${r.wordKey}')">▶️</button>
         <button class="delete-btn" onclick="window.deleteVoice('${r.wordKey}')">🗑️</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function updateVoiceCount() {
-  el('voice-total').textContent = voiceRecordings.length;
-  // Show progress against words
-  if (words.length > 0) {
-    const pct = Math.round((voiceRecordings.length / words.length) * 100);
-    el('voice-status').textContent = `${voiceRecordings.length} / ${words.length} words recorded (${pct}%)`;
+  const total = words.length;
+  const recorded = voiceRecordings.length;
+  el('voice-total').textContent = recorded;
+  el('voice-total-words').textContent = total;
+  
+  const pct = total > 0 ? Math.round((recorded / total) * 100) : 0;
+  el('voice-progress-bar').style.width = pct + '%';
+  
+  if (total === 0) {
+    el('voice-status').textContent = 'No words loaded. Add words first!';
+    el('voice-status').className = 'status';
+  } else if (recorded === total && total > 0) {
+    el('voice-status').textContent = '🎉 All words recorded!';
+    el('voice-status').className = 'status success';
+  } else {
+    el('voice-status').textContent = `${total - recorded} words left to record`;
     el('voice-status').className = 'status';
   }
 }
 
-window.playVoice = async function(wordKey) {
-  const record = await VoiceManager.getRecording(wordKey);
-  if (record && record.audioBlob) {
-    VoiceManager.playAudio(record.audioBlob);
-    el('voice-status').textContent = '▶️ Playing...';
-    el('voice-status').className = 'status';
-    setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
-  }
-};
-
-window.deleteVoice = async function(wordKey) {
-  if (!confirm('Delete this recording?')) return;
-  await VoiceManager.deleteRecording(wordKey);
-  await loadVoiceRecordings();
-  el('voice-status').textContent = '🗑️ Deleted.';
-  el('voice-status').className = 'status';
-  setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
-};
-
-// Voice recording
+// ===== VOICE RECORDING =====
 async function startVoiceRecording() {
-  const wordInput = el('voice-word-input');
-  const translationInput = el('voice-translation-input');
-  const word = wordInput.value.trim();
-  const translation = translationInput.value.trim();
-
-  if (!word || !translation) {
-    el('voice-status').textContent = '⚠️ Enter both word and translation.';
+  const select = el('voice-word-select');
+  const wordKey = select.value;
+  
+  if (!wordKey) {
+    el('voice-status').textContent = '⚠️ Select a word first.';
     el('voice-status').className = 'status error';
     return;
   }
 
-  const match = words.find(w => w.word === word && w.translation === translation);
-  const category = match ? match.category : 'unknown';
-  const wordKey = word + '|' + translation;
+  const wordObj = words.find(w => Utils.wordKey(w) === wordKey);
+  if (!wordObj) {
+    el('voice-status').textContent = '⚠️ Word not found in your list.';
+    el('voice-status').className = 'status error';
+    return;
+  }
 
   const existing = await VoiceManager.getRecording(wordKey);
-  if (existing && !confirm(`"${word}" already has a recording. Overwrite?`)) return;
+  if (existing) {
+    if (!confirm(`"${wordObj.word}" already has a recording. Overwrite?`)) return;
+  }
 
   const success = await VoiceManager.startRecording();
   if (success) {
     voiceIsRecording = true;
-    voicePending = { wordKey, word, translation, category };
+    voicePending = { wordKey, word: wordObj.word, translation: wordObj.translation, category: wordObj.category };
     el('voice-record-btn').textContent = '⏹️ Stop';
     el('voice-record-btn').style.background = 'var(--rust)';
-    el('voice-status').innerHTML = `<span class="recording-indicator"></span> Recording... Click Stop when done.`;
+    el('voice-status').innerHTML = `<span class="recording-indicator"></span> Recording "${wordObj.word}"... Click Stop when done.`;
     el('voice-status').className = 'status';
   } else {
     el('voice-status').textContent = '❌ Could not access microphone.';
@@ -780,10 +808,6 @@ async function stopVoiceRecording() {
   el('voice-status').textContent = '✅ Saved!';
   el('voice-status').className = 'status success';
 
-  el('voice-word-input').value = '';
-  el('voice-translation-input').value = '';
-  el('voice-suggestions').innerHTML = '';
-
   await loadVoiceRecordings();
   setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
 }
@@ -793,32 +817,44 @@ el('voice-record-btn').addEventListener('click', () => {
   else { startVoiceRecording(); }
 });
 
-// Voice suggestions
-el('voice-word-input').addEventListener('input', () => {
-  const container = el('voice-suggestions');
-  const input = el('voice-word-input').value.trim();
-  if (!input || words.length === 0) { container.innerHTML = ''; return; }
-
-  const matches = words.filter(w => w.word.startsWith(input)).slice(0, 8);
-  if (matches.length === 0) { container.innerHTML = ''; return; }
-
-  container.innerHTML = matches.map(w =>
-    `<span class="word-suggestion" onclick="fillVoiceWord('${w.word}', '${w.translation}')">${w.word} → ${w.translation}</span>`
-  ).join('');
+// ===== FILTERS =====
+el('voice-filter-unrecorded').addEventListener('click', () => {
+  voiceFilter = 'unrecorded';
+  el('voice-filter-unrecorded').classList.add('active');
+  el('voice-filter-all').classList.remove('active');
+  populateWordSelect();
+  renderVoiceList();
 });
 
-window.fillVoiceWord = function(word, translation) {
-  el('voice-word-input').value = word;
-  el('voice-translation-input').value = translation;
-  el('voice-suggestions').innerHTML = '';
+el('voice-filter-all').addEventListener('click', () => {
+  voiceFilter = 'all';
+  el('voice-filter-all').classList.add('active');
+  el('voice-filter-unrecorded').classList.remove('active');
+  populateWordSelect();
+  renderVoiceList();
+});
+
+// ===== VOICE PLAYBACK & DELETE (global) =====
+window.playVoice = async function(wordKey) {
+  const record = await VoiceManager.getRecording(wordKey);
+  if (record && record.audioBlob) {
+    VoiceManager.playAudio(record.audioBlob);
+    el('voice-status').textContent = '▶️ Playing...';
+    el('voice-status').className = 'status';
+    setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
+  }
 };
 
-// Voice search
-el('voice-search').addEventListener('input', (e) => {
-  renderVoiceList(e.target.value);
-});
+window.deleteVoice = async function(wordKey) {
+  if (!confirm('Delete this recording?')) return;
+  await VoiceManager.deleteRecording(wordKey);
+  await loadVoiceRecordings();
+  el('voice-status').textContent = '🗑️ Deleted.';
+  el('voice-status').className = 'status';
+  setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
+};
 
-// Voice export/import
+// ===== VOICE EXPORT/IMPORT =====
 el('voice-export-btn').addEventListener('click', async () => {
   const data = await VoiceManager.exportAll();
   if (data.length === 0) { el('voice-import-status').textContent = '⚠️ No recordings to export.'; return; }
@@ -864,7 +900,7 @@ el('voice-delete-all-btn').addEventListener('click', async () => {
   setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
 });
 
-// Keyboard shortcut: Escape to stop recording
+// ===== KEYBOARD SHORTCUT =====
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && voiceIsRecording) { stopVoiceRecording(); }
 });
