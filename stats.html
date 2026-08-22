@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Word Drills — Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --surface:#232E3D;
+    --surface-2:#2C3849;
+    --paper:#EDE6D6;
+    --paper-dim:#B9B2A2;
+    --amber:#E8A33D;
+    --sage:#6FA97A;
+    --rust:#C8563D;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    justify-content:center;
+    min-height:100dvh;
+  }
+  .app{
+    width:100%;
+    max-width:560px;
+    padding:20px 18px 40px;
+    display:flex;
+    flex-direction:column;
+    min-height:100dvh;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:24px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1 span{color:var(--amber);}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:14px;
+  }
+  .user-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .user-btn{
+    flex:1;
+    padding:14px 8px;
+    border-radius:10px;
+    border:1.5px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper-dim);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .user-btn.active{
+    border-color:var(--amber);
+    color:var(--amber);
+    background:rgba(232,163,61,0.08);
+  }
+  label.field-label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--amber);
+    margin-bottom:8px;
+  }
+  select{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  .filters{
+    display:flex;
+    gap:10px;
+  }
+  .filters > div{flex:1;}
+  .word-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 0;
+    border-top:1px solid var(--surface-2);
+    gap:10px;
+  }
+  .word-row:first-of-type{border-top:none;}
+  .word-main{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:17px;
+  }
+  .word-sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin-top:2px;
+  }
+  .word-stats{
+    text-align:right;
+    flex-shrink:0;
+  }
+  .word-acc{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:15px;
+  }
+  .word-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--paper-dim);
+    margin-top:2px;
+  }
+  .acc-low{color:var(--rust);}
+  .acc-mid{color:var(--amber);}
+  .acc-high{color:var(--sage);}
+  .empty-state{
+    text-align:center;
+    color:var(--paper-dim);
+    font-size:13px;
+    padding:30px 0;
+  }
+  .summary-row{
+    display:flex;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .summary-col{
+    flex:1;
+    text-align:center;
+    background:var(--surface-2);
+    border-radius:10px;
+    padding:14px 8px;
+  }
+  .summary-num{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:20px;
+  }
+  .summary-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--paper-dim);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-top:4px;
+  }
+  footer{
+    margin-top:auto;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--surface-2);
+    padding-top:20px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Word<span>Drills</span> <span style="font-size:14px; color:var(--paper-dim);">stats</span></h1>
+    <div class="tag">weak words</div>
+  </header>
+
+  <div class="card">
+    <label class="field-label">User</label>
+    <div class="user-row" id="user-row"></div>
+
+    <div class="filters">
+      <div>
+        <label class="field-label">Category</label>
+        <select id="category-select"></select>
+      </div>
+      <div>
+        <label class="field-label">Min. attempts</label>
+        <select id="min-select">
+          <option value="1">1+</option>
+          <option value="2" selected>2+</option>
+          <option value="3">3+</option>
+          <option value="5">5+</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="summary-card">
+    <div class="summary-row">
+      <div class="summary-col">
+        <div class="summary-num" id="sum-words">0</div>
+        <div class="summary-label">words tracked</div>
+      </div>
+      <div class="summary-col">
+        <div class="summary-num" id="sum-attempts">0</div>
+        <div class="summary-label">attempts</div>
+      </div>
+      <div class="summary-col">
+        <div class="summary-num" id="sum-acc">0%</div>
+        <div class="summary-label">overall accuracy</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tag" style="margin-bottom:4px;">weakest first</div>
+    <div id="word-list"></div>
+  </div>
+
+  <footer>reads Firestore data written by index.html</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD5kV-BApIMmiJItiBsgDMrsyxKpFh1OI4",
+  authDomain: "placcounts.firebaseapp.com",
+  projectId: "placcounts",
+  storageBucket: "placcounts.firebasestorage.app",
+  messagingSenderId: "738608257101",
+  appId: "1:738608257101:web:50c11dd49b86ba08b2a404"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const K = 0.25; // must match index.html
+
+const el = id => document.getElementById(id);
+let currentUser = null;
+let currentCategory = 'all';
+let currentStats = {}; // cached words map for the active user
+
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+function practiceMastery(w){ return (w.pCorrect + 1) / (w.pCorrect + w.pIncorrect + 2); }
+function mastery(w){
+  const testCorrect = w.testCorrect || 0, testIncorrect = w.testIncorrect || 0;
+  const pm = practiceMastery(w);
+  return (testCorrect + K * pm + 1) / (testCorrect + testIncorrect + K + 2);
+}
+
+async function loadWordStats(user){
+  try {
+    const snap = await db.collection('wordStats').doc(user).get();
+    const data = snap.exists ? snap.data() : {};
+    return data.words || {};
+  } catch(e){
+    console.error('Failed to load word stats from Firestore', e);
+    return {};
+  }
+}
+
+async function loadUserList(){
+  try {
+    const snap = await db.collection('wordStats').get();
+    return snap.docs.map(d => d.id).sort();
+  } catch(e){
+    console.error('Failed to load user list from Firestore', e);
+    return [];
+  }
+}
+
+function bindUserButtons(){
+  document.querySelectorAll('.user-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentUser = btn.dataset.user;
+      await refresh();
+    });
+  });
+}
+
+async function init(){
+  const users = await loadUserList();
+  const row = el('user-row');
+  if (users.length === 0){
+    row.innerHTML = '<div class="empty-state">No player data yet — play a session first.</div>';
+    return;
+  }
+  currentUser = users[0];
+  row.innerHTML = users.map((u, i) =>
+    `<div class="user-btn${i === 0 ? ' active' : ''}" data-user="${u}">${capitalize(u)}</div>`
+  ).join('');
+  bindUserButtons();
+  await refresh();
+}
+
+el('category-select').addEventListener('change', () => {
+  currentCategory = el('category-select').value;
+  render();
+});
+el('min-select').addEventListener('change', render);
+
+function populateCategories(){
+  const cats = [...new Set(Object.values(currentStats).map(w => w.category))].sort();
+  const sel = el('category-select');
+  const prev = currentCategory;
+  sel.innerHTML = '<option value="all">All categories</option>' +
+    cats.map(c => `<option value="${c}">${capitalize(c)}</option>`).join('');
+  if (cats.includes(prev)) sel.value = prev;
+  else currentCategory = 'all';
+}
+
+async function refresh(){
+  el('word-list').innerHTML = '<div class="empty-state">Loading...</div>';
+  currentStats = await loadWordStats(currentUser);
+  populateCategories();
+  render();
+}
+
+function render(){
+  const minAttempts = parseInt(el('min-select').value, 10);
+  let entries = Object.values(currentStats).filter(w => (w.pCorrect + w.pIncorrect) >= minAttempts);
+  if (currentCategory !== 'all') entries = entries.filter(w => w.category === currentCategory);
+
+  entries.forEach(w => {
+    w._total = w.pCorrect + w.pIncorrect;
+    w._acc = practiceMastery(w);
+    w._mastery = mastery(w);
+  });
+  entries.sort((a, b) => a._acc - b._acc || b._total - a._total);
+
+  // summary (over the filtered set, raw accuracy not the smoothed estimate)
+  const totalAttempts = entries.reduce((s, w) => s + w._total, 0);
+  const totalCorrect = entries.reduce((s, w) => s + w.pCorrect, 0);
+  el('sum-words').textContent = entries.length;
+  el('sum-attempts').textContent = totalAttempts;
+  el('sum-acc').textContent = (totalAttempts ? Math.round(totalCorrect / totalAttempts * 100) : 0) + '%';
+
+  const list = el('word-list');
+  if (entries.length === 0){
+    list.innerHTML = '<div class="empty-state">No data yet at this filter level.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(w => {
+    const pct = Math.round(w._acc * 100);
+    const accClass = pct < 50 ? 'acc-low' : pct < 80 ? 'acc-mid' : 'acc-high';
+    return `<div class="word-row">
+      <div>
+        <div class="word-main">${w.word} → ${w.translation}</div>
+        <div class="word-sub">${capitalize(w.category)}</div>
+      </div>
+      <div class="word-stats">
+        <div class="word-acc ${accClass}">${pct}%</div>
+        <div class="word-count">${w.pCorrect}/${w._total}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
