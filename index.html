@@ -1480,11 +1480,11 @@
         };
 
         container.innerHTML = history.map(h =>
-          `<div class="history-row">
-            <span><span class="history-mode">${modeLabel(h.mode)}${h.mcType ? ' (' + h.mcType + ')' : ''}</span>
-            <span class="history-score">${h.correct}/${h.total}</span></span>
-            <span class="history-cat">${catLabel(h.categories !== undefined ? h.categories : h.category)}</span>
-          </div>`
+      `<div class="history-row">
+       <span><span class="history-mode">${modeLabel(h.mode)}${h.mcType ? ' (' + h.mcType + ')' : ''}</span>
+        <span class="history-score">✅ ${h.correct}</span></span>
+        <span class="history-cat">${catLabel(h.categories !== undefined ? h.categories : h.category)}</span>
+        </div>`
         ).join('');
       }
     };
