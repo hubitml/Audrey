@@ -11,7 +11,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
-  /* (your existing styles – keep unchanged) */
   :root{
     --ink:#1B2430;
     --surface:#232E3D;
@@ -22,6 +21,8 @@
     --sage:#6FA97A;
     --rust:#C8563D;
     --radius:14px;
+    --heart-color:#E74C3C;
+    --heart-empty:#4A4A5A;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -122,11 +123,16 @@
     font-size:14px;
     cursor:pointer;
     text-align:center;
+    transition:all 0.2s;
   }
   .mode-btn.active{
     border-color:var(--amber);
     color:var(--amber);
     background:rgba(232,163,61,0.08);
+  }
+  .mode-btn:not(.active):hover{
+    border-color:var(--paper-dim);
+    color:var(--paper);
   }
   .cat-toggle{
     width:100%;
@@ -175,8 +181,13 @@
     font-weight:700;
     font-size:16px;
     cursor:pointer;
+    transition:opacity 0.2s;
   }
   .primary-btn:active{opacity:0.85;}
+  .primary-btn:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+  }
   .ghost-btn{
     width:100%;
     padding:14px;
@@ -188,7 +199,12 @@
     font-weight:600;
     font-size:14px;
     cursor:pointer;
+    transition:all 0.2s;
     margin-top:10px;
+  }
+  .ghost-btn:hover{
+    border-color:var(--paper-dim);
+    color:var(--paper);
   }
   .hidden{display:none !important;}
   /* --- progress --- */
@@ -208,19 +224,28 @@
   .score-row{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     font-family:'IBM Plex Mono',monospace;
     font-size:12px;
     color:var(--paper-dim);
     margin-bottom:16px;
   }
+  .hearts-display{
+    display:flex;
+    gap:4px;
+    font-size:20px;
+    letter-spacing:2px;
+  }
+  .heart-filled{color:var(--heart-color);}
+  .heart-empty{color:var(--heart-empty);}
   /* --- MC screen --- */
   .word-display{
     font-family:'Fraunces',serif;
     font-size:34px;
     font-weight:700;
     text-align:center;
-    padding:30px 10px;
-    margin-bottom:6px;
+    padding:30px 10px 10px;
+    margin-bottom:0;
   }
   .word-caption{
     text-align:center;
@@ -230,6 +255,12 @@
     text-transform:uppercase;
     letter-spacing:0.06em;
     margin-bottom:18px;
+    min-height:20px;
+    transition:all 0.3s;
+  }
+  .word-caption.revealed{
+    color:var(--amber);
+    font-weight:600;
   }
   .option-btn{
     width:100%;
@@ -243,10 +274,55 @@
     font-size:16px;
     text-align:left;
     cursor:pointer;
+    transition:all 0.2s;
   }
-  .option-btn.correct{border-color:var(--sage); background:rgba(111,169,122,0.15); color:var(--sage);}
-  .option-btn.wrong{border-color:var(--rust); background:rgba(200,86,61,0.15); color:var(--rust);}
+  .option-btn.correct{
+    border-color:var(--sage);
+    background:rgba(111,169,122,0.15);
+    color:var(--sage);
+  }
+  .option-btn.wrong{
+    border-color:var(--rust);
+    background:rgba(200,86,61,0.15);
+    color:var(--rust);
+  }
+  .option-btn.used{
+    opacity:0.3;
+    cursor:not-allowed;
+    border-color:var(--surface-2);
+  }
   .option-btn:disabled{cursor:default;}
+  .option-btn:not(:disabled):hover{
+    border-color:var(--paper-dim);
+  }
+  .reveal-btn{
+    width:100%;
+    padding:12px;
+    margin-top:8px;
+    border-radius:10px;
+    border:1.5px dashed var(--surface-2);
+    background:transparent;
+    color:var(--paper-dim);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    cursor:pointer;
+    transition:all 0.2s;
+  }
+  .reveal-btn:hover{
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+  .mc-actions{
+    display:flex;
+    gap:10px;
+    margin-top:6px;
+  }
+  .mc-actions .ghost-btn{
+    margin-top:0;
+    flex:1;
+    padding:12px;
+    font-size:13px;
+  }
   /* --- match screen --- */
   .match-grid{
     display:flex;
@@ -268,6 +344,7 @@
     align-items:center;
     justify-content:center;
     word-break:break-word;
+    transition:all 0.2s;
   }
   .match-item.selected{border-color:var(--amber); color:var(--amber);}
   .match-item.matched{border-color:var(--sage); color:var(--sage); background:rgba(111,169,122,0.1); opacity:0.55; cursor:default;}
@@ -358,6 +435,7 @@
     font-size:12px;
     color:var(--paper-dim);
     margin-top:6px;
+    min-height:20px;
   }
   .status-msg.error{color:var(--rust);}
   .status-msg.success{color:var(--sage);}
@@ -368,6 +446,21 @@
     font-size:10px;
     color:var(--surface-2);
     padding-top:20px;
+  }
+  .button-group{
+    display:flex;
+    gap:10px;
+  }
+  .button-group .ghost-btn{
+    margin-top:0;
+    flex:1;
+  }
+  .setup-warning{
+    font-size:12px;
+    color:var(--rust);
+    text-align:center;
+    margin-bottom:12px;
+    min-height:20px;
   }
 </style>
 </head>
@@ -394,6 +487,7 @@
       <span class="chev">▾</span>
     </div>
     <div id="category-options"></div>
+    <div id="category-warning" class="setup-warning"></div>
 
     <label class="field-label">Mode</label>
     <div class="mode-row">
@@ -401,16 +495,11 @@
       <div class="mode-btn" data-mode="match">Matching</div>
     </div>
 
-    <label class="field-label">Length</label>
-    <div class="mode-row" id="mc-length-row">
-      <div class="mode-btn length-btn" data-len="10">10</div>
-      <div class="mode-btn length-btn active" data-len="15">15</div>
-      <div class="mode-btn length-btn" data-len="20">20</div>
-    </div>
-    <div class="mode-row hidden" id="match-length-row">
-      <div class="mode-btn length-btn" data-len="6">6</div>
-      <div class="mode-btn length-btn active" data-len="12">12</div>
-      <div class="mode-btn length-btn" data-len="18">18</div>
+    <label class="field-label">MC Type</label>
+    <div class="mode-row" id="mc-type-row">
+      <div class="mode-btn mc-type-btn active" data-mctype="normal">Normal</div>
+      <div class="mode-btn mc-type-btn" data-mctype="reversed">Reversed</div>
+      <div class="mode-btn mc-type-btn" data-mctype="category">Category</div>
     </div>
 
     <button class="primary-btn" id="start-btn">Start</button>
@@ -434,7 +523,10 @@
     </div>
     <div class="tag" style="margin:20px 0 8px;">Recent sessions</div>
     <div id="history-list"></div>
-    <button class="ghost-btn" id="logout-btn" style="margin-top:16px;">Switch user</button>
+    <div class="button-group">
+      <button class="ghost-btn" id="stats-btn">📊 Stats</button>
+      <button class="ghost-btn" id="logout-btn">Switch user</button>
+    </div>
     <div id="save-status" class="status-msg" style="margin-top:8px;"></div>
   </div>
 
@@ -442,7 +534,8 @@
   <div class="hidden" id="screen-mc">
     <div class="progress-bar"><div class="progress-fill" id="mc-progress"></div></div>
     <div class="score-row">
-      <span id="mc-count">0 / 0</span>
+      <span id="mc-count">Question 0</span>
+      <div class="hearts-display" id="mc-hearts"></div>
       <span id="mc-score">Score: 0</span>
     </div>
     <div class="card">
@@ -450,6 +543,7 @@
       <div class="word-caption" id="mc-category"></div>
     </div>
     <div id="mc-options"></div>
+    <div id="mc-reveal-container"></div>
   </div>
 
   <!-- MATCH SCREEN -->
@@ -492,7 +586,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Sign in anonymously so Firestore rules allow writes
 auth.signInAnonymously()
   .then(() => {
     console.log('Signed in anonymously');
@@ -505,18 +598,20 @@ auth.signInAnonymously()
     el('login-status').className = 'status-msg error';
   });
 
-// Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn('Persistence:', err));
 
-// -------------------- weighting constants --------------------
+// -------------------- CONSTANTS --------------------
 const K = 0.25;
 const FLOOR = 0.05;
 const COOLDOWN_FRACTION = 0.5;
 const MATCH_ROUND_WORTH = 4;
+const MAX_HEARTS = 5;
+const BETA = 0.05; // Weight for category mastery in combined mastery
+const ROUND_SIZE = 6; // For matching
 
 // -------------------- GLOBALS --------------------
 let ALL_WORDS = [];
-let settings = { categories: [], mode: 'mc', sessionLength: 15 };
+let settings = { categories: [], mode: 'mc', mcType: 'normal' };
 let currentUser = null;
 
 const el = id => document.getElementById(id);
@@ -541,13 +636,17 @@ function attemptLogin() {
   afterLogin();
 }
 
+// -------------------- STATS BUTTON --------------------
+el('stats-btn').addEventListener('click', () => {
+  window.open('https://hubitml.github.io/Audrey/stats', '_blank');
+});
+
 // -------------------- SWITCH USER / LOGOUT --------------------
 el('logout-btn').addEventListener('click', () => {
   currentUser = null;
   el('login-input').value = '';
   showScreen('login');
   el('header-tag').textContent = 'login';
-  // clear history
   el('stat-mc-num').textContent = '0/0';
   el('stat-mc-acc').textContent = '0%';
   el('stat-match-num').textContent = '0/0';
@@ -582,9 +681,11 @@ function populateCategories() {
     cb.addEventListener('change', () => {
       settings.categories = [...panel.querySelectorAll('.cat-checkbox:checked')].map(c => c.value);
       updateCategorySummary();
+      validateCategories();
     });
   });
 }
+
 function updateCategorySummary(){
   const allCats = [...new Set(ALL_WORDS.map(w => w.category))];
   const summary = el('category-summary');
@@ -592,12 +693,26 @@ function updateCategorySummary(){
   else if (settings.categories.length === allCats.length) summary.textContent = 'All categories';
   else summary.textContent = settings.categories.map(capitalize).join(', ');
 }
+
+function validateCategories() {
+  const warning = el('category-warning');
+  if (settings.mcType === 'category' && settings.categories.length < 4) {
+    warning.textContent = '⚠️ Category mode requires at least 4 categories selected.';
+    warning.style.display = 'block';
+  } else {
+    warning.textContent = '';
+    warning.style.display = 'none';
+  }
+}
+
 el('category-toggle').addEventListener('click', () => {
   el('category-options').classList.toggle('hidden');
 });
+
 function getActivePool(){
   return ALL_WORDS.filter(w => settings.categories.includes(w.category));
 }
+
 function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 function shuffle(arr){ return [...arr].sort(() => Math.random() - 0.5); }
 
@@ -610,15 +725,17 @@ async function afterLogin() {
   el('setup-status').textContent = '';
   showScreen('setup');
   loadHistoryFromFirestore();
+  validateCategories();
 }
 
-// -------------------- PER-WORD STATS --------------------
+// -------------------- PER-WORD STATS (CLEAN VERSION) --------------------
 let wordStatsCache = {};
 let categoryRoundsCache = {};
 let statsLoaded = false;
 let saveTimer = null;
 
 function wordKey(item){ return item.word + '|' + item.translation; }
+
 function wordStatsDocRef(){ return db.collection('wordStats').doc(currentUser); }
 
 async function loadWordStatsFromFirestore(){
@@ -633,7 +750,7 @@ async function loadWordStatsFromFirestore(){
     console.error('Failed to load word stats from Firestore', e);
     wordStatsCache = {};
     categoryRoundsCache = {};
-    statsLoaded = true; // still allow play, but warn
+    statsLoaded = true;
     el('setup-status').textContent = '⚠️ Could not load progress. Data may not save.';
     el('setup-status').className = 'status-msg error';
   }
@@ -643,6 +760,7 @@ function scheduleSaveWordStats(){
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(saveWordStatsToFirestore, 800);
 }
+
 async function saveWordStatsToFirestore(){
   try {
     await wordStatsDocRef().set({ words: wordStatsCache, categoryRounds: categoryRoundsCache });
@@ -660,51 +778,49 @@ function getOrCreateWordStat(item){
   const key = wordKey(item);
   if (!wordStatsCache[key]){
     wordStatsCache[key] = {
-      word: item.word, translation: item.translation, category: item.category,
-      pCorrect: 0, pIncorrect: 0, testCorrect: 0, testIncorrect: 0,
-      lastCorrectMark: 0, lastSeen: 0
+      pCorrect: 0,
+      pIncorrect: 0,
+      catCorrect: 0,
+      catIncorrect: 0,
+      lastCorrectMark: 0,
+      lastSeen: 0
     };
   }
   return wordStatsCache[key];
 }
 
-function recordWordAttempt(item, correct){
-  if (!item) return;
-  const w = getOrCreateWordStat(item);
-  if (correct) w.pCorrect++; else w.pIncorrect++;
-  w.category = item.category;
-  w.lastSeen = Date.now();
-  if (correct) w.lastCorrectMark = categoryRoundsCache[item.category] || 0;
-  scheduleSaveWordStats();
-}
-
-function incrementCategoryRounds(categories, amount){
-  categories.forEach(c => { categoryRoundsCache[c] = (categoryRoundsCache[c] || 0) + amount; });
-  scheduleSaveWordStats();
-}
-
-// -------------------- weighting functions --------------------
+// -------------------- MASTERY FUNCTIONS --------------------
 function practiceMastery(item){
   const w = wordStatsCache[wordKey(item)];
-  const pCorrect = w ? w.pCorrect : 0;
-  const pIncorrect = w ? w.pIncorrect : 0;
+  if (!w) return 0.5;
+  const pCorrect = w.pCorrect || 0;
+  const pIncorrect = w.pIncorrect || 0;
   return (pCorrect + 1) / (pCorrect + pIncorrect + 2);
 }
-function mastery(item){
+
+function categoryMastery(item){
   const w = wordStatsCache[wordKey(item)];
-  const testCorrect = w ? w.testCorrect : 0;
-  const testIncorrect = w ? w.testIncorrect : 0;
-  const pm = practiceMastery(item);
-  return (testCorrect + K * pm + 1) / (testCorrect + testIncorrect + K + 2);
+  if (!w) return 0.5;
+  const catCorrect = w.catCorrect || 0;
+  const catIncorrect = w.catIncorrect || 0;
+  return (catCorrect + 1) / (catCorrect + catIncorrect + 2);
 }
+
+function combinedMastery(item){
+  const pm = practiceMastery(item);
+  const cm = categoryMastery(item);
+  return (1 - BETA) * pm + BETA * cm;
+}
+
 function selectionWeight(item, poolSize){
   const w = wordStatsCache[wordKey(item)];
-  const pm = practiceMastery(item);
+  const cm = combinedMastery(item);
   const cooldown = Math.max(1, poolSize * COOLDOWN_FRACTION);
   const roundsSince = (categoryRoundsCache[item.category] || 0) - (w ? (w.lastCorrectMark || 0) : 0);
   const recencyFactor = Math.min(1, Math.max(0, roundsSince / cooldown));
-  return FLOOR + (1 - FLOOR) * (1 - pm) * recencyFactor;
+  return FLOOR + (1 - FLOOR) * (1 - cm) * recencyFactor;
 }
+
 function weightedSampleWithoutReplacement(items, weightFn, n){
   const pool = items.slice();
   const picked = [];
@@ -722,6 +838,33 @@ function weightedSampleWithoutReplacement(items, weightFn, n){
     pool.splice(idx, 1);
   }
   return picked;
+}
+
+function recordWordAttempt(item, correct, isCategoryMode = false){
+  if (!item) return;
+  const w = getOrCreateWordStat(item);
+  if (isCategoryMode) {
+    if (correct) {
+      w.catCorrect = (w.catCorrect || 0) + 1;
+      w.lastCorrectMark = categoryRoundsCache[item.category] || 0;
+    } else {
+      w.catIncorrect = (w.catIncorrect || 0) + 1;
+    }
+  } else {
+    if (correct) {
+      w.pCorrect = (w.pCorrect || 0) + 1;
+      w.lastCorrectMark = categoryRoundsCache[item.category] || 0;
+    } else {
+      w.pIncorrect = (w.pIncorrect || 0) + 1;
+    }
+  }
+  w.lastSeen = Date.now();
+  scheduleSaveWordStats();
+}
+
+function incrementCategoryRounds(categories, amount){
+  categories.forEach(c => { categoryRoundsCache[c] = (categoryRoundsCache[c] || 0) + amount; });
+  scheduleSaveWordStats();
 }
 
 // -------------------- HISTORY --------------------
@@ -744,13 +887,14 @@ async function loadHistoryFromFirestore() {
   }
 }
 
-async function recordSession(mode, categories, correct, total) {
+async function recordSession(mode, categories, correct, total, mcType = null) {
   if (total <= 0 || !currentUser) return;
   const session = {
     mode,
     categories,
     correct,
     total,
+    mcType: mcType || null,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
   try {
@@ -788,7 +932,7 @@ function renderHistoryUI(history) {
   };
   container.innerHTML = history.map(h =>
     `<div class="history-row">
-      <span><span class="history-mode">${modeLabel(h.mode)}</span><span class="history-score">${h.correct}/${h.total}</span></span>
+      <span><span class="history-mode">${modeLabel(h.mode)}${h.mcType ? ' (' + h.mcType + ')' : ''}</span><span class="history-score">${h.correct}/${h.total}</span></span>
       <span class="history-cat">${catLabel(h.categories !== undefined ? h.categories : h.category)}</span>
     </div>`
   ).join('');
@@ -799,251 +943,4 @@ function showScreen(name) {
   ['login','setup','mc','match','end'].forEach(s => el('screen-' + s).classList.add('hidden'));
   el('screen-' + name).classList.remove('hidden');
   el('header-tag').textContent = (name === 'login') ? 'login' : (name === 'setup' ? currentUser || 'setup' : name);
-  el('history-card').classList.toggle('hidden', name !== 'setup');
-}
-
-// -------------------- MODE & LENGTH TOGGLES --------------------
-document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    settings.mode = btn.dataset.mode;
-    el('mc-length-row').classList.toggle('hidden', settings.mode !== 'mc');
-    el('match-length-row').classList.toggle('hidden', settings.mode !== 'match');
-    const activeRow = settings.mode === 'mc' ? el('mc-length-row') : el('match-length-row');
-    const activeBtn = activeRow.querySelector('.length-btn.active') || activeRow.querySelector('.length-btn');
-    activeRow.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
-    activeBtn.classList.add('active');
-    settings.sessionLength = parseInt(activeBtn.dataset.len, 10);
-  });
-});
-
-function bindLengthButtons(row){
-  row.querySelectorAll('.length-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      row.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      settings.sessionLength = parseInt(btn.dataset.len, 10);
-    });
-  });
-}
-bindLengthButtons(el('mc-length-row'));
-bindLengthButtons(el('match-length-row'));
-
-// -------------------- START --------------------
-el('start-btn').addEventListener('click', () => {
-  if (!currentUser) { return; }
-  if (!statsLoaded){
-    el('setup-status').textContent = 'Still loading progress, one sec...';
-    el('setup-status').className = 'status-msg';
-    return;
-  }
-  if (settings.categories.length === 0){
-    el('setup-status').textContent = 'Select at least one category.';
-    el('setup-status').className = 'status-msg error';
-    return;
-  }
-  const pool = getActivePool();
-  if (settings.mode === 'mc'){
-    if (pool.length < 2){
-      el('setup-status').textContent = 'Need at least 2 words in selected categories.';
-      el('setup-status').className = 'status-msg error';
-      return;
-    }
-    startMC(pool);
-  } else {
-    if (pool.length < ROUND_SIZE){
-      el('setup-status').textContent = 'Need at least ' + ROUND_SIZE + ' words for matching.';
-      el('setup-status').className = 'status-msg error';
-      return;
-    }
-    startMatch(pool);
-  }
-});
-
-// ================= MULTIPLE CHOICE =================
-let mcQueue = [], mcIndex = 0, mcScore = 0, mcPool = [], mcActiveCats = [];
-
-function startMC(pool) {
-  mcPool = pool;
-  mcActiveCats = settings.categories.slice();
-  mcQueue = weightedSampleWithoutReplacement(pool, w => selectionWeight(w, pool.length), settings.sessionLength);
-  mcIndex = 0;
-  mcScore = 0;
-  showScreen('mc');
-  renderMC();
-}
-
-function renderMC() {
-  if (mcIndex >= mcQueue.length) {
-    endSession(mcScore, mcQueue.length);
-    return;
-  }
-  incrementCategoryRounds(mcActiveCats, 1);
-  const item = mcQueue[mcIndex];
-  el('mc-word').textContent = item.word;
-  el('mc-category').textContent = item.category;
-  el('mc-count').textContent = (mcIndex + 1) + ' / ' + mcQueue.length;
-  el('mc-score').textContent = 'Score: ' + mcScore;
-  el('mc-progress').style.width = ((mcIndex) / mcQueue.length * 100) + '%';
-
-  const distractors = shuffle(mcPool.filter(w => w.translation !== item.translation)).slice(0, 3);
-  const options = shuffle([item, ...distractors]);
-
-  const container = el('mc-options');
-  container.innerHTML = '';
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'option-btn';
-    btn.textContent = opt.translation;
-    btn.addEventListener('click', () => handleMCAnswer(btn, opt, item, container));
-    container.appendChild(btn);
-  });
-}
-
-function handleMCAnswer(btn, opt, correctItem, container) {
-  const buttons = container.querySelectorAll('.option-btn');
-  buttons.forEach(b => b.disabled = true);
-  const isCorrect = opt.translation === correctItem.translation;
-  if (isCorrect) {
-    btn.classList.add('correct');
-    mcScore++;
-  } else {
-    btn.classList.add('wrong');
-    buttons.forEach(b => { if (b.textContent === correctItem.translation) b.classList.add('correct'); });
-  }
-  recordWordAttempt(correctItem, isCorrect);
-  setTimeout(() => { mcIndex++; renderMC(); }, 650);
-}
-
-// ================= MATCHING =================
-let matchPool = [], matchRoundWords = [], matchScore = 0, matchTotal = 0, matchActiveCats = [];
-let matchLeftSel = null, matchRightSel = null, matchedCount = 0;
-const ROUND_SIZE = 6;
-
-function startMatch(pool) {
-  matchActiveCats = settings.categories.slice();
-  const targetLen = Math.floor(Math.min(settings.sessionLength, pool.length) / ROUND_SIZE) * ROUND_SIZE;
-  matchPool = weightedSampleWithoutReplacement(pool, w => selectionWeight(w, pool.length), targetLen);
-  matchScore = 0;
-  matchTotal = 0;
-  showScreen('match');
-  nextMatchRound();
-}
-
-function nextMatchRound() {
-  if (matchPool.length < ROUND_SIZE) {
-    endSession(matchScore, matchTotal);
-    return;
-  }
-  matchRoundWords = matchPool.splice(0, ROUND_SIZE);
-  incrementCategoryRounds(matchActiveCats, MATCH_ROUND_WORTH);
-  matchedCount = 0;
-  matchLeftSel = null;
-  matchRightSel = null;
-  renderMatch();
-}
-
-function renderMatch() {
-  const total = matchRoundWords.length;
-  el('match-count').textContent = 'Round: ' + total + ' pairs, ' + (matchPool.length) + ' left after';
-  el('match-score').textContent = 'Score: ' + matchScore;
-  el('match-progress').style.width = (matchedCount / total * 100) + '%';
-
-  const leftItems = shuffle(matchRoundWords);
-  const rightItems = shuffle(matchRoundWords);
-
-  const leftCol = el('match-left');
-  const rightCol = el('match-right');
-  leftCol.innerHTML = '';
-  rightCol.innerHTML = '';
-
-  leftItems.forEach(item => {
-    const d = document.createElement('div');
-    d.className = 'match-item';
-    d.textContent = item.word;
-    d.dataset.key = item.word + '|' + item.translation;
-    d.addEventListener('click', () => selectMatch('left', d, item));
-    leftCol.appendChild(d);
-  });
-  rightItems.forEach(item => {
-    const d = document.createElement('div');
-    d.className = 'match-item';
-    d.textContent = item.translation;
-    d.dataset.key = item.word + '|' + item.translation;
-    d.addEventListener('click', () => selectMatch('right', d, item));
-    rightCol.appendChild(d);
-  });
-}
-
-function selectMatch(side, node, item) {
-  if (node.classList.contains('matched')) return;
-
-  if (side === 'left') {
-    if (matchLeftSel) matchLeftSel.node.classList.remove('selected');
-    matchLeftSel = { node, item };
-    node.classList.add('selected');
-  } else {
-    if (matchRightSel) matchRightSel.node.classList.remove('selected');
-    matchRightSel = { node, item };
-    node.classList.add('selected');
-  }
-
-  if (matchLeftSel && matchRightSel) {
-    const isMatch = matchLeftSel.item.word === matchRightSel.item.word;
-    const leftItem = matchLeftSel.item, rightItem = matchRightSel.item;
-    if (isMatch) {
-      matchLeftSel.node.classList.remove('selected');
-      matchRightSel.node.classList.remove('selected');
-      matchLeftSel.node.classList.add('matched');
-      matchRightSel.node.classList.add('matched');
-      matchScore++;
-      matchTotal++;
-      matchedCount++;
-      matchLeftSel = null;
-      matchRightSel = null;
-      recordWordAttempt(leftItem, true);
-      el('match-progress').style.width = (matchedCount / matchRoundWords.length * 100) + '%';
-      el('match-score').textContent = 'Score: ' + matchScore;
-      if (matchedCount === matchRoundWords.length) {
-        setTimeout(nextMatchRound, 500);
-      }
-    } else {
-      matchTotal++;
-      recordWordAttempt(leftItem, false);
-      recordWordAttempt(rightItem, false);
-      const l = matchLeftSel.node, r = matchRightSel.node;
-      l.classList.add('wrong-flash');
-      r.classList.add('wrong-flash');
-      setTimeout(() => {
-        l.classList.remove('selected','wrong-flash');
-        r.classList.remove('selected','wrong-flash');
-        matchLeftSel = null;
-        matchRightSel = null;
-      }, 350);
-    }
-  }
-}
-
-// ================= END =================
-function endSession(score, total) {
-  showScreen('end');
-  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
-  el('end-score').textContent = pct + '%';
-  el('end-caption').textContent = score + ' correct out of ' + total;
-  recordSession(settings.mode, settings.categories.slice(), score, total);
-  // Force a save immediately to ensure word stats are written
-  saveWordStatsToFirestore();
-}
-
-el('replay-btn').addEventListener('click', () => {
-  if (!currentUser) return;
-  const pool = getActivePool();
-  if (settings.mode === 'mc') startMC(pool);
-  else startMatch(pool);
-});
-
-el('change-settings-btn').addEventListener('click', () => showScreen('setup'));
-</script>
-</body>
-</html>
+  el('history
