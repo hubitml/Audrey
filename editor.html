@@ -129,36 +129,118 @@
     color:var(--sage);
     margin-top:6px;
   }
+
+  /* Voice Manager */
+  .voice-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 0;
+    border-top:1px solid var(--surface-2);
+  }
+  .voice-item:first-child{border-top:none;}
+  .voice-word{font-weight:600; font-size:15px;}
+  .voice-meta{font-size:12px; color:var(--paper-dim); margin-left:8px;}
+  .voice-actions{display:flex; gap:6px;}
+  .voice-actions button{
+    padding:4px 10px;
+    border-radius:6px;
+    border:1px solid var(--surface-2);
+    background:transparent;
+    color:var(--paper);
+    cursor:pointer;
+    font-size:12px;
+    transition:all 0.2s;
+  }
+  .voice-actions button:hover{ border-color:var(--paper-dim); }
+  .voice-actions .play-btn{color:var(--sage);}
+  .voice-actions .delete-btn{color:var(--rust);}
+  .recording-indicator{
+    display:inline-block;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:var(--rust);
+    animation:pulse 1s infinite;
+    margin-right:8px;
+    vertical-align:middle;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:0.3;}
+  }
+  .voice-count{ font-size:13px; color:var(--paper-dim); margin-bottom:10px; }
+  .voice-count strong{color:var(--paper);}
+  .search-box{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--surface-2);
+    background:var(--surface-2);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    margin-bottom:10px;
+  }
+  .search-box::placeholder{color:var(--paper-dim);}
+  .search-box:focus{outline:none; border-color:var(--amber);}
+  .empty-state{
+    text-align:center;
+    color:var(--paper-dim);
+    font-size:13px;
+    padding:20px 0;
+  }
+  .voice-progress{
+    font-size:12px;
+    color:var(--paper-dim);
+    margin-bottom:8px;
+  }
+  .word-suggestion{
+    padding:4px 10px;
+    background:var(--surface-2);
+    border-radius:6px;
+    margin:2px 4px 2px 0;
+    display:inline-block;
+    cursor:pointer;
+    font-size:13px;
+    transition:all 0.2s;
+  }
+  .word-suggestion:hover{
+    background:var(--amber);
+    color:var(--ink);
+  }
+  .suggestions{ margin:6px 0 10px; display:flex; flex-wrap:wrap; gap:4px; }
 </style>
 </head>
 <body>
 <div class="app">
   <a class="back-link" href="index.html">&larr; back to app</a>
   <h1>Word<span>Drills</span> Editor</h1>
-  <div class="sub">Paste your table straight from Google Docs or Sheets, then save straight to GitHub.</div>
+  <div class="sub">Paste from Google Docs, edit words, record your voice, then save to GitHub.</div>
 
+  <!-- ===== GITHUB ===== -->
   <div class="card">
-    <label class="field-label">GitHub connection</label>
-    <div class="sub" style="margin-bottom:6px;">Repo: hubitml/Audrey — words.json on main</div>
+    <label class="field-label">GitHub</label>
+    <div class="sub" style="margin-bottom:6px;">hubitml/Audrey — words.json on main</div>
     <div class="token-row">
-      <input id="github-token" type="password" placeholder="Paste your GitHub token here">
-      <button class="btn-secondary" id="token-save-btn">Save token</button>
+      <input id="github-token" type="password" placeholder="GitHub token">
+      <button class="btn-secondary" id="token-save-btn">Save</button>
     </div>
     <div class="token-row">
-      <button class="btn-secondary" id="token-clear-btn">Clear saved token</button>
+      <button class="btn-secondary" id="token-clear-btn">Clear token</button>
     </div>
     <div class="token-saved-tag" id="token-saved-tag"></div>
-    <div class="token-note">This token is stored only in this browser (localStorage) — it is never sent anywhere except directly to GitHub's API. Don't paste it into chat messages or anywhere else. If you ever think it's been exposed, revoke it at github.com/settings/tokens and generate a new one.</div>
+    <div class="token-note">Token stored only in this browser. Revoke at github.com/settings/tokens if compromised.</div>
     <div class="btn-row">
-      <button class="btn-github" id="github-load-btn">↻ Load from GitHub</button>
-      <button class="btn-github" id="github-save-btn">💾 Save to GitHub</button>
+      <button class="btn-github" id="github-load-btn">↻ Load</button>
+      <button class="btn-github" id="github-save-btn">💾 Save</button>
     </div>
     <div class="status" id="github-status"></div>
   </div>
 
+  <!-- ===== PASTE ===== -->
   <div class="card">
     <label class="field-label">Paste from Google Docs / Sheets</label>
-    <div class="sub" style="margin-bottom:10px;">Works with a real table (tab-separated), "word - translation" lines, or Docs' plain-text export where each word and its translation land on separate lines. Add a line like "Topic: Hospitality" above a group to set their category automatically.</div>
     <textarea id="table-input" style="min-height:160px;" placeholder="Topic: Hospitality
 
 Sól
@@ -166,41 +248,55 @@ Salt
 Pieprz
 Pepper
 Kurczak
-Chicken"></textarea>
+Chicken">Topic: </textarea>
     <div class="btn-row">
-      <button class="btn-primary" id="table-import-btn">Add from pasted table</button>
-      <button class="btn-secondary" id="table-replace-btn">Replace entire list with this</button>
+      <button class="btn-primary" id="table-import-btn">Add from paste</button>
+      <button class="btn-secondary" id="table-replace-btn">Replace all</button>
     </div>
     <div class="status" id="table-status"></div>
   </div>
 
+  <!-- ===== SINGLE WORD ===== -->
   <div class="card">
-    <label class="field-label">Add a single word</label>
+    <label class="field-label">Add single word</label>
     <div class="row">
       <div><input id="new-word" placeholder="Word (e.g. hello)"></div>
       <div><input id="new-translation" placeholder="Translation (e.g. cześć)"></div>
     </div>
-    <label class="field-label">Category</label>
-    <input id="new-category" list="category-list" placeholder="e.g. greetings">
+    <input id="new-category" list="category-list" placeholder="Category" style="margin-top:8px;">
     <datalist id="category-list"></datalist>
     <div class="btn-row">
-      <button class="btn-primary" id="add-btn">Add word</button>
+      <button class="btn-primary" id="add-btn">Add</button>
     </div>
   </div>
 
+  <!-- ===== VOICE MANAGER ===== -->
   <div class="card">
-    <label class="field-label">Load existing words.json (from this folder)</label>
+    <label class="field-label">Voice recordings</label>
+    <div class="voice-count"><strong id="voice-total">0</strong> recordings</div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+      <input id="voice-word-input" placeholder="Word (e.g. kot)" style="flex:2; min-width:100px;">
+      <input id="voice-translation-input" placeholder="Translation (e.g. cat)" style="flex:2; min-width:100px;">
+      <button class="btn-primary" id="voice-record-btn" style="flex:1; min-width:80px;">🔴 Record</button>
+    </div>
+
+    <div id="voice-suggestions" class="suggestions"></div>
+    <div id="voice-status" class="status"></div>
+
+    <input class="search-box" id="voice-search" placeholder="Search recordings...">
+    <div id="voice-list"></div>
+
     <div class="btn-row">
-      <button class="btn-secondary" id="load-btn">Load from words.json</button>
-      <button class="btn-secondary" id="paste-toggle-btn">Paste JSON instead</button>
+      <button class="btn-secondary" id="voice-export-btn">📤 Export</button>
+      <button class="btn-secondary" id="voice-import-btn">📥 Import</button>
+      <button class="btn-secondary" id="voice-delete-all-btn" style="border-color:var(--rust); color:var(--rust);">🗑️ Clear all</button>
     </div>
-    <div class="hidden-paste" id="paste-area" style="display:none; margin-top:12px;">
-      <textarea id="paste-input" placeholder='[{"word":"hello","translation":"cześć","category":"greetings"}]'></textarea>
-      <div class="btn-row"><button class="btn-primary" id="paste-import-btn">Import pasted JSON</button></div>
-    </div>
-    <div class="status" id="load-status"></div>
+    <input type="file" id="voice-import-file" accept=".json" style="display:none;">
+    <div id="voice-import-status" class="status"></div>
   </div>
 
+  <!-- ===== WORD TABLE ===== -->
   <div class="card">
     <div class="count-tag" id="word-count">0 words</div>
     <table>
@@ -208,28 +304,14 @@ Chicken"></textarea>
       <tbody id="word-table-body"></tbody>
     </table>
   </div>
-
-  <div class="card">
-    <label class="field-label">Export (backup / manual option)</label>
-    <div class="btn-row">
-      <button class="btn-primary" id="download-btn">Download words.json</button>
-      <button class="btn-secondary" id="copy-btn">Copy JSON to clipboard</button>
-    </div>
-    <div class="status" id="export-status"></div>
-  </div>
 </div>
 
 <script>
+// ================================================================
+//  WORD MANAGER
+// ================================================================
 let words = [];
 const el = id => document.getElementById(id);
-
-// ---- GitHub config ----
-const GH_OWNER = 'hubitml';
-const GH_REPO = 'Audrey';
-const GH_BRANCH = 'main';
-const GH_PATH = 'words.json';
-const GH_TOKEN_KEY = 'wordDrillsGithubToken';
-let currentFileSha = null; // tracks the SHA of the last-loaded words.json, needed to save
 
 function refreshTable(){
   const body = el('word-table-body');
@@ -270,37 +352,29 @@ function escapeAttr(s){
   return String(s || '').replace(/"/g, '&quot;');
 }
 
-// ---- Token handling ----
-function getToken(){
-  return localStorage.getItem(GH_TOKEN_KEY) || '';
-}
+// ================================================================
+//  GITHUB
+// ================================================================
+const GH_OWNER = 'hubitml';
+const GH_REPO = 'Audrey';
+const GH_BRANCH = 'main';
+const GH_PATH = 'words.json';
+const GH_TOKEN_KEY = 'wordDrillsGithubToken';
+let currentFileSha = null;
 
-function setToken(token){
-  localStorage.setItem(GH_TOKEN_KEY, token);
-  updateTokenSavedTag();
-}
-
-function clearToken(){
-  localStorage.removeItem(GH_TOKEN_KEY);
-  el('github-token').value = '';
-  updateTokenSavedTag();
-}
-
+function getToken(){ return localStorage.getItem(GH_TOKEN_KEY) || ''; }
+function setToken(token){ localStorage.setItem(GH_TOKEN_KEY, token); updateTokenSavedTag(); }
+function clearToken(){ localStorage.removeItem(GH_TOKEN_KEY); el('github-token').value = ''; updateTokenSavedTag(); }
 function updateTokenSavedTag(){
-  const tag = el('token-saved-tag');
-  tag.textContent = getToken() ? 'Token saved in this browser.' : 'No token saved yet.';
+  el('token-saved-tag').textContent = getToken() ? '✓ Token saved' : 'No token saved';
 }
 
 el('token-save-btn').addEventListener('click', () => {
   const val = el('github-token').value.trim();
-  if (!val){
-    el('github-status').textContent = 'Enter a token first.';
-    el('github-status').className = 'status error';
-    return;
-  }
+  if (!val){ el('github-status').textContent = 'Enter a token.'; el('github-status').className = 'status error'; return; }
   setToken(val);
   el('github-token').value = '';
-  el('github-status').textContent = 'Token saved to this browser.';
+  el('github-status').textContent = 'Token saved.';
   el('github-status').className = 'status';
 });
 
@@ -310,34 +384,22 @@ el('token-clear-btn').addEventListener('click', () => {
   el('github-status').className = 'status';
 });
 
-// ---- GitHub Load ----
 el('github-load-btn').addEventListener('click', async () => {
   const status = el('github-status');
   const token = getToken();
-  if (!token){
-    status.textContent = 'Paste and save a GitHub token first.';
-    status.className = 'status error';
-    return;
-  }
-  status.textContent = 'Loading from GitHub…';
+  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
+  status.textContent = 'Loading…';
   status.className = 'status';
   try {
     const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
-    const res = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github+json'
-      }
-    });
-    if (!res.ok){
-      throw new Error(`GitHub returned ${res.status}: ${res.statusText}`);
-    }
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' } });
+    if (!res.ok) throw new Error(`GitHub ${res.status}: ${res.statusText}`);
     const data = await res.json();
     currentFileSha = data.sha;
     const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
     words = JSON.parse(decoded);
     refreshTable();
-    status.textContent = `Loaded ${words.length} words from GitHub.`;
+    status.textContent = `Loaded ${words.length} words.`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Load failed: ' + err.message;
@@ -345,64 +407,33 @@ el('github-load-btn').addEventListener('click', async () => {
   }
 });
 
-// ---- GitHub Save ----
 el('github-save-btn').addEventListener('click', async () => {
   const status = el('github-status');
   const token = getToken();
-  if (!token){
-    status.textContent = 'Paste and save a GitHub token first.';
-    status.className = 'status error';
-    return;
-  }
-  status.textContent = 'Saving to GitHub…';
+  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
+  status.textContent = 'Saving…';
   status.className = 'status';
   try {
     const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
-
-    // Always re-fetch the current SHA right before saving, so we don't
-    // clobber a change made elsewhere (e.g. another tab, or editing on
-    // GitHub's website directly) with a stale version.
     const shaRes = await fetch(`${url}?ref=${GH_BRANCH}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github+json'
-      }
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
     });
-    if (shaRes.ok){
-      const shaData = await shaRes.json();
-      currentFileSha = shaData.sha;
-    }
-    // If shaRes is 404, the file doesn't exist yet — currentFileSha stays
-    // null and GitHub will create it fresh.
+    if (shaRes.ok){ const shaData = await shaRes.json(); currentFileSha = shaData.sha; }
 
     const jsonStr = JSON.stringify(words, null, 2);
     const contentB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-
-    const body = {
-      message: `Update words.json (${words.length} words) via editor`,
-      content: contentB64,
-      branch: GH_BRANCH
-    };
+    const body = { message: `Update words.json (${words.length} words)`, content: contentB64, branch: GH_BRANCH };
     if (currentFileSha) body.sha = currentFileSha;
 
     const putRes = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-
-    if (!putRes.ok){
-      const errData = await putRes.json().catch(() => ({}));
-      throw new Error(`GitHub returned ${putRes.status}: ${errData.message || putRes.statusText}`);
-    }
-
+    if (!putRes.ok){ const errData = await putRes.json().catch(() => ({})); throw new Error(`GitHub ${putRes.status}: ${errData.message || putRes.statusText}`); }
     const putData = await putRes.json();
     currentFileSha = putData.content.sha;
-    status.textContent = `Saved ${words.length} words to GitHub.`;
+    status.textContent = `Saved ${words.length} words.`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Save failed: ' + err.message;
@@ -410,50 +441,9 @@ el('github-save-btn').addEventListener('click', async () => {
   }
 });
 
-// ---- Local load/paste (unchanged, kept as fallback) ----
-el('load-btn').addEventListener('click', () => {
-  fetch('words.json')
-    .then(r => r.json())
-    .then(data => {
-      words = data;
-      refreshTable();
-      el('load-status').textContent = 'Loaded ' + data.length + ' words.';
-    })
-    .catch(() => {
-      el('load-status').textContent = 'Could not load words.json from this folder.';
-    });
-});
-
-el('paste-toggle-btn').addEventListener('click', () => {
-  const area = el('paste-area');
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
-});
-
-el('paste-import-btn').addEventListener('click', () => {
-  try {
-    const data = JSON.parse(el('paste-input').value);
-    words = data;
-    refreshTable();
-    el('load-status').textContent = 'Imported ' + data.length + ' words.';
-  } catch (err) {
-    el('load-status').textContent = 'Invalid JSON — check formatting.';
-  }
-});
-
-el('add-btn').addEventListener('click', () => {
-  const word = el('new-word').value.trim();
-  const translation = el('new-translation').value.trim();
-  const category = el('new-category').value.trim() || 'uncategorized';
-  if (!word || !translation) return;
-  words.push({ word, translation, category });
-  el('new-word').value = '';
-  el('new-translation').value = '';
-  el('new-category').value = '';
-  refreshTable();
-});
-
-// Splits a pasted line into cells. Handles tab-separated (Google Docs/Sheets
-// tables paste this way), comma-separated, and "word - translation" dashes.
+// ================================================================
+//  PASTE
+// ================================================================
 function splitCells(line){
   if (line.includes('\t')) return line.split('\t').map(c => c.trim());
   if (line.includes(',')) return line.split(',').map(c => c.trim());
@@ -466,13 +456,6 @@ function looksLikeHeader(cells){
   return /\b(word|translation|category|term|meaning)\b/.test(joined) && cells.length <= 4;
 }
 
-// Handles three pasted shapes at once:
-//  1. "word<TAB>translation<TAB>category" per line (Sheets, or a Docs table
-//     copied with cells intact)
-//  2. "word - translation" per line
-//  3. Docs tables that flatten each row onto two separate lines (word on one
-//     line, translation on the next), optionally grouped under "Topic: X"
-//     lines that set the category for everything below them
 function parseTable(text){
   const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const parsed = [];
@@ -481,81 +464,428 @@ function parseTable(text){
 
   rawLines.forEach((line, idx) => {
     const topicMatch = line.match(/^(topic|category)\s*:\s*(.+)$/i);
-    if (topicMatch){
-      currentCategory = topicMatch[2].trim();
-      pendingWord = null;
-      return;
-    }
-
+    if (topicMatch){ currentCategory = topicMatch[2].trim(); pendingWord = null; return; }
     const cells = splitCells(line).map(c => c.replace(/^"|"$/g, ''));
-
-    if (idx === 0 && looksLikeHeader(cells)) return; // skip a header row
-
+    if (idx === 0 && looksLikeHeader(cells)) return;
     if (cells.length >= 2 && cells[0] && cells[1]){
-      // full row already has word + translation on one line
-      parsed.push({
-        word: cells[0],
-        translation: cells[1],
-        category: cells[2] || currentCategory
-      });
+      parsed.push({ word: cells[0], translation: cells[1], category: cells[2] || currentCategory });
       pendingWord = null;
     } else if (cells[0]){
-      // single token per line — pair it with the next single token
-      if (pendingWord === null){
-        pendingWord = cells[0];
-      } else {
-        parsed.push({ word: pendingWord, translation: cells[0], category: currentCategory });
-        pendingWord = null;
-      }
+      if (pendingWord === null){ pendingWord = cells[0]; }
+      else { parsed.push({ word: pendingWord, translation: cells[0], category: currentCategory }); pendingWord = null; }
     }
   });
-
   return parsed;
 }
 
 el('table-import-btn').addEventListener('click', () => {
   const parsed = parseTable(el('table-input').value);
-  if (parsed.length === 0){
-    el('table-status').textContent = 'Could not find any rows — check the paste includes at least a word and translation per line.';
-    return;
-  }
+  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
   words = words.concat(parsed);
   refreshTable();
   el('table-status').textContent = 'Added ' + parsed.length + ' words.';
-  el('table-input').value = '';
+  el('table-input').value = 'Topic: ';
 });
 
 el('table-replace-btn').addEventListener('click', () => {
   const parsed = parseTable(el('table-input').value);
-  if (parsed.length === 0){
-    el('table-status').textContent = 'Could not find any rows — check the paste includes at least a word and translation per line.';
-    return;
-  }
+  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
   words = parsed;
   refreshTable();
-  el('table-status').textContent = 'Replaced list with ' + parsed.length + ' words.';
-  el('table-input').value = '';
+  el('table-status').textContent = 'Replaced with ' + parsed.length + ' words.';
+  el('table-input').value = 'Topic: ';
 });
 
-el('download-btn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(words, null, 2)], { type: 'application/json' });
+// ================================================================
+//  SINGLE WORD
+// ================================================================
+el('add-btn').addEventListener('click', () => {
+  const word = el('new-word').value.trim();
+  const translation = el('new-translation').value.trim();
+  const category = el('new-category').value.trim() || 'uncategorized';
+  if (!word || !translation) return;
+  words.push({ word, translation, category });
+  el('new-word').value = '';
+  el('new-translation').value = '';
+  el('new-category').value = '';
+  refreshTable();
+});
+
+// ================================================================
+//  VOICE MANAGER - IndexedDB
+// ================================================================
+const VoiceManager = {
+  dbName: 'WordDrillsVoices',
+  dbVersion: 1,
+  storeName: 'recordings',
+  db: null,
+  mediaRecorder: null,
+  audioChunks: [],
+  isRecording: false,
+
+  async init() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          const store = db.createObjectStore(this.storeName, { keyPath: 'wordKey' });
+          store.createIndex('word', 'word', { unique: false });
+          store.createIndex('translation', 'translation', { unique: false });
+        }
+      };
+      request.onsuccess = (event) => { this.db = event.target.result; resolve(); };
+      request.onerror = (event) => { reject(event.target.error); };
+    });
+  },
+
+  async saveRecording(wordKey, word, translation, category, audioBlob) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const record = { wordKey, word, translation, category: category || 'unknown', audioBlob, timestamp: Date.now() };
+      const request = store.put(record);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async getRecording(wordKey) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readonly');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.get(wordKey);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async getAllRecordings() {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readonly');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async deleteRecording(wordKey) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.delete(wordKey);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async deleteAll() {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks = [];
+      this.mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) this.audioChunks.push(event.data); };
+      this.mediaRecorder.start();
+      this.isRecording = true;
+      return true;
+    } catch (err) { console.error(err); return false; }
+  },
+
+  async stopRecording() {
+    if (!this.mediaRecorder || !this.isRecording) return null;
+    return new Promise((resolve) => {
+      this.mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        this.isRecording = false;
+        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        resolve(audioBlob);
+      };
+      this.mediaRecorder.stop();
+    });
+  },
+
+  playAudio(audioBlob) {
+    const url = URL.createObjectURL(audioBlob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.play();
+    return audio;
+  },
+
+  async exportAll() {
+    const recordings = await this.getAllRecordings();
+    return await Promise.all(recordings.map(async (r) => {
+      const base64 = await this.blobToBase64(r.audioBlob);
+      return { wordKey: r.wordKey, word: r.word, translation: r.translation, category: r.category, audio: base64, timestamp: r.timestamp };
+    }));
+  },
+
+  blobToBase64(blob) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  },
+
+  async importFromData(data) {
+    let count = 0;
+    for (const r of data) {
+      try {
+        const response = await fetch(r.audio);
+        const blob = await response.blob();
+        await this.saveRecording(r.wordKey, r.word, r.translation, r.category || 'unknown', blob);
+        count++;
+      } catch (e) { console.warn('Failed to import:', r.wordKey, e); }
+    }
+    return count;
+  }
+};
+
+// ================================================================
+//  VOICE UI
+// ================================================================
+let voiceRecordings = [];
+let voiceIsRecording = false;
+let voicePending = null;
+
+async function loadVoiceRecordings() {
+  voiceRecordings = await VoiceManager.getAllRecordings();
+  renderVoiceList();
+  updateVoiceCount();
+}
+
+function renderVoiceList(filter = '') {
+  const container = el('voice-list');
+  const search = filter.toLowerCase().trim();
+  let filtered = voiceRecordings;
+  if (search) {
+    filtered = voiceRecordings.filter(r =>
+      r.word.toLowerCase().includes(search) ||
+      r.translation.toLowerCase().includes(search)
+    );
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">${voiceRecordings.length === 0 ? 'No recordings yet.' : 'No matching recordings.'}</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(r => `
+    <div class="voice-item">
+      <div>
+        <span class="voice-word">${r.word}</span>
+        <span class="voice-meta">${r.translation}</span>
+        <span class="voice-meta">[${r.category}]</span>
+      </div>
+      <div class="voice-actions">
+        <button class="play-btn" onclick="window.playVoice('${r.wordKey}')">▶️</button>
+        <button class="delete-btn" onclick="window.deleteVoice('${r.wordKey}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateVoiceCount() {
+  el('voice-total').textContent = voiceRecordings.length;
+  // Show progress against words
+  if (words.length > 0) {
+    const pct = Math.round((voiceRecordings.length / words.length) * 100);
+    el('voice-status').textContent = `${voiceRecordings.length} / ${words.length} words recorded (${pct}%)`;
+    el('voice-status').className = 'status';
+  }
+}
+
+window.playVoice = async function(wordKey) {
+  const record = await VoiceManager.getRecording(wordKey);
+  if (record && record.audioBlob) {
+    VoiceManager.playAudio(record.audioBlob);
+    el('voice-status').textContent = '▶️ Playing...';
+    el('voice-status').className = 'status';
+    setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
+  }
+};
+
+window.deleteVoice = async function(wordKey) {
+  if (!confirm('Delete this recording?')) return;
+  await VoiceManager.deleteRecording(wordKey);
+  await loadVoiceRecordings();
+  el('voice-status').textContent = '🗑️ Deleted.';
+  el('voice-status').className = 'status';
+  setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
+};
+
+// Voice recording
+async function startVoiceRecording() {
+  const wordInput = el('voice-word-input');
+  const translationInput = el('voice-translation-input');
+  const word = wordInput.value.trim();
+  const translation = translationInput.value.trim();
+
+  if (!word || !translation) {
+    el('voice-status').textContent = '⚠️ Enter both word and translation.';
+    el('voice-status').className = 'status error';
+    return;
+  }
+
+  const match = words.find(w => w.word === word && w.translation === translation);
+  const category = match ? match.category : 'unknown';
+  const wordKey = word + '|' + translation;
+
+  const existing = await VoiceManager.getRecording(wordKey);
+  if (existing && !confirm(`"${word}" already has a recording. Overwrite?`)) return;
+
+  const success = await VoiceManager.startRecording();
+  if (success) {
+    voiceIsRecording = true;
+    voicePending = { wordKey, word, translation, category };
+    el('voice-record-btn').textContent = '⏹️ Stop';
+    el('voice-record-btn').style.background = 'var(--rust)';
+    el('voice-status').innerHTML = `<span class="recording-indicator"></span> Recording... Click Stop when done.`;
+    el('voice-status').className = 'status';
+  } else {
+    el('voice-status').textContent = '❌ Could not access microphone.';
+    el('voice-status').className = 'status error';
+  }
+}
+
+async function stopVoiceRecording() {
+  const audioBlob = await VoiceManager.stopRecording();
+  if (!audioBlob) return;
+  if (!voicePending) return;
+
+  await VoiceManager.saveRecording(
+    voicePending.wordKey,
+    voicePending.word,
+    voicePending.translation,
+    voicePending.category,
+    audioBlob
+  );
+
+  voiceIsRecording = false;
+  voicePending = null;
+  el('voice-record-btn').textContent = '🔴 Record';
+  el('voice-record-btn').style.background = '';
+  el('voice-status').textContent = '✅ Saved!';
+  el('voice-status').className = 'status success';
+
+  el('voice-word-input').value = '';
+  el('voice-translation-input').value = '';
+  el('voice-suggestions').innerHTML = '';
+
+  await loadVoiceRecordings();
+  setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
+}
+
+el('voice-record-btn').addEventListener('click', () => {
+  if (voiceIsRecording) { stopVoiceRecording(); }
+  else { startVoiceRecording(); }
+});
+
+// Voice suggestions
+el('voice-word-input').addEventListener('input', () => {
+  const container = el('voice-suggestions');
+  const input = el('voice-word-input').value.trim();
+  if (!input || words.length === 0) { container.innerHTML = ''; return; }
+
+  const matches = words.filter(w => w.word.startsWith(input)).slice(0, 8);
+  if (matches.length === 0) { container.innerHTML = ''; return; }
+
+  container.innerHTML = matches.map(w =>
+    `<span class="word-suggestion" onclick="fillVoiceWord('${w.word}', '${w.translation}')">${w.word} → ${w.translation}</span>`
+  ).join('');
+});
+
+window.fillVoiceWord = function(word, translation) {
+  el('voice-word-input').value = word;
+  el('voice-translation-input').value = translation;
+  el('voice-suggestions').innerHTML = '';
+};
+
+// Voice search
+el('voice-search').addEventListener('input', (e) => {
+  renderVoiceList(e.target.value);
+});
+
+// Voice export/import
+el('voice-export-btn').addEventListener('click', async () => {
+  const data = await VoiceManager.exportAll();
+  if (data.length === 0) { el('voice-import-status').textContent = '⚠️ No recordings to export.'; return; }
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'words.json';
+  a.download = `voice-recordings-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  el('export-status').textContent = 'Downloaded — you can also just use Save to GitHub above.';
+  el('voice-import-status').textContent = `📤 Exported ${data.length} recordings.`;
+  el('voice-import-status').className = 'status success';
+  setTimeout(() => { el('voice-import-status').textContent = ''; }, 3000);
 });
 
-el('copy-btn').addEventListener('click', () => {
-  navigator.clipboard.writeText(JSON.stringify(words, null, 2))
-    .then(() => { el('export-status').textContent = 'Copied to clipboard.'; })
-    .catch(() => { el('export-status').textContent = 'Could not copy — try Download instead.'; });
+el('voice-import-btn').addEventListener('click', () => el('voice-import-file').click());
+el('voice-import-file').addEventListener('change', async (e) => {
+  if (e.target.files.length > 0) {
+    try {
+      const text = await e.target.files[0].text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data) || data.length === 0) { throw new Error('Invalid format'); }
+      const count = await VoiceManager.importFromData(data);
+      await loadVoiceRecordings();
+      el('voice-import-status').textContent = `✅ Imported ${count} recordings.`;
+      el('voice-import-status').className = 'status success';
+      setTimeout(() => { el('voice-import-status').textContent = ''; }, 3000);
+    } catch (err) {
+      el('voice-import-status').textContent = '❌ Import failed: ' + err.message;
+      el('voice-import-status').className = 'status error';
+    }
+  }
+  e.target.value = '';
 });
 
-updateTokenSavedTag();
-refreshTable();
+el('voice-delete-all-btn').addEventListener('click', async () => {
+  if (!confirm('Delete ALL voice recordings? This cannot be undone!')) return;
+  await VoiceManager.deleteAll();
+  await loadVoiceRecordings();
+  el('voice-status').textContent = '🗑️ All recordings deleted.';
+  el('voice-status').className = 'status';
+  setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
+});
+
+// Keyboard shortcut: Escape to stop recording
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && voiceIsRecording) { stopVoiceRecording(); }
+});
+
+// ================================================================
+//  INIT
+// ================================================================
+async function init() {
+  await VoiceManager.init();
+  await loadVoiceRecordings();
+  updateTokenSavedTag();
+  refreshTable();
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    el('voice-record-btn').disabled = true;
+    el('voice-status').textContent = '⚠️ Microphone not supported in this browser.';
+    el('voice-status').className = 'status error';
+  }
+}
+
+init();
 </script>
 </body>
 </html>
