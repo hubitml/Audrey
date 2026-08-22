@@ -6,10 +6,12 @@
 <title>Word Drills</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<!-- Firebase SDKs (Compat for simplicity) -->
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
+  /* (your existing styles – keep unchanged) */
   :root{
     --ink:#1B2430;
     --surface:#232E3D;
@@ -357,6 +359,8 @@
     color:var(--paper-dim);
     margin-top:6px;
   }
+  .status-msg.error{color:var(--rust);}
+  .status-msg.success{color:var(--sage);}
   footer{
     margin-top:auto;
     text-align:center;
@@ -431,6 +435,7 @@
     <div class="tag" style="margin:20px 0 8px;">Recent sessions</div>
     <div id="history-list"></div>
     <button class="ghost-btn" id="logout-btn" style="margin-top:16px;">Switch user</button>
+    <div id="save-status" class="status-msg" style="margin-top:8px;"></div>
   </div>
 
   <!-- MC SCREEN -->
@@ -473,7 +478,7 @@
 </div>
 
 <script>
-// -------------------- FIREBASE CONFIG (with your actual keys) --------------------
+// -------------------- FIREBASE CONFIG --------------------
 const firebaseConfig = {
   apiKey: "AIzaSyD5kV-BApIMmiJItiBsgDMrsyxKpFh1OI4",
   authDomain: "placcounts.firebaseapp.com",
@@ -485,24 +490,38 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-// Enable offline persistence (shared across devices)
+// Sign in anonymously so Firestore rules allow writes
+auth.signInAnonymously()
+  .then(() => {
+    console.log('Signed in anonymously');
+    el('login-status').textContent = 'Connected to Firestore';
+    el('login-status').className = 'status-msg success';
+  })
+  .catch(err => {
+    console.error('Auth error:', err);
+    el('login-status').textContent = '⚠️ Firestore auth failed – data may not save. Check console.';
+    el('login-status').className = 'status-msg error';
+  });
+
+// Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn('Persistence:', err));
 
-// -------------------- weighting constants (tune these) --------------------
-const K = 0.25;                 // how much practiceMastery nudges the real mastery score
-const FLOOR = 0.05;              // minimum selection weight, even at full mastery
-const COOLDOWN_FRACTION = 0.5;   // cooldown (in rounds) = poolSize * this
-const MATCH_ROUND_WORTH = 4;     // one matching batch of ROUND_SIZE counts as this many "rounds"
+// -------------------- weighting constants --------------------
+const K = 0.25;
+const FLOOR = 0.05;
+const COOLDOWN_FRACTION = 0.5;
+const MATCH_ROUND_WORTH = 4;
 
 // -------------------- GLOBALS --------------------
 let ALL_WORDS = [];
 let settings = { categories: [], mode: 'mc', sessionLength: 15 };
-let currentUser = null;          // just the typed name (string)
+let currentUser = null;
 
 const el = id => document.getElementById(id);
 
-// -------------------- LOGIN (simple name) --------------------
+// -------------------- LOGIN --------------------
 el('login-btn').addEventListener('click', attemptLogin);
 el('login-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') attemptLogin();
@@ -512,11 +531,13 @@ function attemptLogin() {
   const name = el('login-input').value.trim();
   if (!name) {
     el('login-status').textContent = 'Please enter your name.';
+    el('login-status').className = 'status-msg error';
     return;
   }
   currentUser = name;
   el('header-tag').textContent = name;
   el('login-status').textContent = '';
+  el('login-status').className = 'status-msg';
   afterLogin();
 }
 
@@ -526,7 +547,7 @@ el('logout-btn').addEventListener('click', () => {
   el('login-input').value = '';
   showScreen('login');
   el('header-tag').textContent = 'login';
-  // clear history display
+  // clear history
   el('stat-mc-num').textContent = '0/0';
   el('stat-mc-acc').textContent = '0%';
   el('stat-match-num').textContent = '0/0';
@@ -545,6 +566,7 @@ fetch('words.json')
   })
   .catch(() => {
     el('setup-status').textContent = 'Could not load words.json — check it is in the same folder.';
+    el('setup-status').className = 'status-msg error';
     if (currentUser) afterLogin();
   });
 
@@ -583,14 +605,14 @@ function shuffle(arr){ return [...arr].sort(() => Math.random() - 0.5); }
 async function afterLogin() {
   if (!currentUser) return;
   el('setup-status').textContent = 'Loading progress...';
+  el('setup-status').className = 'status-msg';
   await loadWordStatsFromFirestore();
   el('setup-status').textContent = '';
   showScreen('setup');
   loadHistoryFromFirestore();
 }
 
-// -------------------- PER-WORD STATS (invisible, read by stats.html) --------------------
-// Stored in Firestore at wordStats/{user}: { words: {...}, categoryRounds: {...} }
+// -------------------- PER-WORD STATS --------------------
 let wordStatsCache = {};
 let categoryRoundsCache = {};
 let statsLoaded = false;
@@ -606,12 +628,15 @@ async function loadWordStatsFromFirestore(){
     const data = snap.exists ? snap.data() : {};
     wordStatsCache = data.words || {};
     categoryRoundsCache = data.categoryRounds || {};
+    statsLoaded = true;
   } catch(e){
     console.error('Failed to load word stats from Firestore', e);
     wordStatsCache = {};
     categoryRoundsCache = {};
+    statsLoaded = true; // still allow play, but warn
+    el('setup-status').textContent = '⚠️ Could not load progress. Data may not save.';
+    el('setup-status').className = 'status-msg error';
   }
-  statsLoaded = true;
 }
 
 function scheduleSaveWordStats(){
@@ -621,8 +646,13 @@ function scheduleSaveWordStats(){
 async function saveWordStatsToFirestore(){
   try {
     await wordStatsDocRef().set({ words: wordStatsCache, categoryRounds: categoryRoundsCache });
+    el('save-status').textContent = '✓ Progress saved';
+    el('save-status').className = 'status-msg success';
+    setTimeout(() => { el('save-status').textContent = ''; }, 2000);
   } catch(e){
     console.error('Failed to save word stats to Firestore', e);
+    el('save-status').textContent = '❌ Failed to save progress. Check console.';
+    el('save-status').className = 'status-msg error';
   }
 }
 
@@ -653,7 +683,7 @@ function incrementCategoryRounds(categories, amount){
   scheduleSaveWordStats();
 }
 
-// -------------------- weighting: practiceMastery, mastery, selectionWeight --------------------
+// -------------------- weighting functions --------------------
 function practiceMastery(item){
   const w = wordStatsCache[wordKey(item)];
   const pCorrect = w ? w.pCorrect : 0;
@@ -694,9 +724,8 @@ function weightedSampleWithoutReplacement(items, weightFn, n){
   return picked;
 }
 
-// -------------------- FIRESTORE HISTORY (per user name) --------------------
+// -------------------- HISTORY --------------------
 function getUserSessionsRef() {
-  // Firestore path: users/{name}/sessions
   return db.collection('users').doc(currentUser).collection('sessions');
 }
 
@@ -711,7 +740,7 @@ async function loadHistoryFromFirestore() {
     renderHistoryUI(sessions);
   } catch (err) {
     console.warn('Error loading history:', err);
-    el('history-list').innerHTML = '<div class="history-empty">Could not load history (check rules)</div>';
+    el('history-list').innerHTML = '<div class="history-empty">Could not load history</div>';
   }
 }
 
@@ -726,14 +755,13 @@ async function recordSession(mode, categories, correct, total) {
   };
   try {
     await getUserSessionsRef().add(session);
-    loadHistoryFromFirestore(); // refresh
+    loadHistoryFromFirestore();
   } catch (err) {
     console.warn('Failed to save session:', err);
   }
 }
 
 function renderHistoryUI(history) {
-  // Aggregated stats
   const agg = { mc: { correct: 0, total: 0 }, match: { correct: 0, total: 0 } };
   history.forEach(h => {
     if (agg[h.mode]) {
@@ -754,7 +782,7 @@ function renderHistoryUI(history) {
   const modeLabel = m => m === 'mc' ? 'MC' : 'Matching';
   const allCats = [...new Set(ALL_WORDS.map(w => w.category))];
   const catLabel = cats => {
-    if (!Array.isArray(cats)) return cats === 'all' ? 'All' : capitalize(cats); // legacy entries
+    if (!Array.isArray(cats)) return cats === 'all' ? 'All' : capitalize(cats);
     if (cats.length === allCats.length) return 'All';
     return cats.map(capitalize).join(', ');
   };
@@ -771,11 +799,10 @@ function showScreen(name) {
   ['login','setup','mc','match','end'].forEach(s => el('screen-' + s).classList.add('hidden'));
   el('screen-' + name).classList.remove('hidden');
   el('header-tag').textContent = (name === 'login') ? 'login' : (name === 'setup' ? currentUser || 'setup' : name);
-  // history card only on setup
   el('history-card').classList.toggle('hidden', name !== 'setup');
 }
 
-// -------------------- MODE TOGGLE --------------------
+// -------------------- MODE & LENGTH TOGGLES --------------------
 document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
@@ -791,7 +818,6 @@ document.querySelectorAll('.mode-row .mode-btn[data-mode]').forEach(btn => {
   });
 });
 
-// -------------------- SESSION LENGTH TOGGLE --------------------
 function bindLengthButtons(row){
   row.querySelectorAll('.length-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -809,22 +835,26 @@ el('start-btn').addEventListener('click', () => {
   if (!currentUser) { return; }
   if (!statsLoaded){
     el('setup-status').textContent = 'Still loading progress, one sec...';
+    el('setup-status').className = 'status-msg';
     return;
   }
   if (settings.categories.length === 0){
     el('setup-status').textContent = 'Select at least one category.';
+    el('setup-status').className = 'status-msg error';
     return;
   }
   const pool = getActivePool();
   if (settings.mode === 'mc'){
     if (pool.length < 2){
       el('setup-status').textContent = 'Need at least 2 words in selected categories.';
+      el('setup-status').className = 'status-msg error';
       return;
     }
     startMC(pool);
   } else {
     if (pool.length < ROUND_SIZE){
-      el('setup-status').textContent = 'Need at least ' + ROUND_SIZE + ' words in selected categories for matching.';
+      el('setup-status').textContent = 'Need at least ' + ROUND_SIZE + ' words for matching.';
+      el('setup-status').className = 'status-msg error';
       return;
     }
     startMatch(pool);
@@ -1002,6 +1032,8 @@ function endSession(score, total) {
   el('end-score').textContent = pct + '%';
   el('end-caption').textContent = score + ' correct out of ' + total;
   recordSession(settings.mode, settings.categories.slice(), score, total);
+  // Force a save immediately to ensure word stats are written
+  saveWordStatsToFirestore();
 }
 
 el('replay-btn').addEventListener('click', () => {
