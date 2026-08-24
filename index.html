@@ -271,19 +271,6 @@
     /* ============================================================
        PROGRESS & SCORE
        ============================================================ */
-    .progress-bar {
-      height: 5px;
-      background: var(--surface-2);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--amber);
-      width: 0%;
-      transition: width 0.25s ease;
-    }
     .score-row {
       display: flex;
       justify-content: space-between;
@@ -316,6 +303,10 @@
       text-align: center;
       padding: 30px 10px 10px;
       margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
     }
     .word-caption {
       text-align: center;
@@ -346,6 +337,26 @@
       text-align: left;
       cursor: pointer;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .option-btn .speaker-icon {
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--amber);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .option-btn .speaker-icon:hover {
+      transform: scale(1.2);
+    }
+    .option-btn .speaker-icon.playing {
+      animation: pulse 0.5s ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
     }
     .option-btn.correct {
       border-color: var(--sage);
@@ -367,6 +378,27 @@
     }
     .option-btn:not(:disabled):hover {
       border-color: var(--paper-dim);
+    }
+    .option-btn .option-text {
+      flex: 1;
+    }
+
+    .speaker-icon {
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--amber);
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    .speaker-icon:hover {
+      transform: scale(1.2);
+    }
+    .speaker-icon.playing {
+      animation: pulse 0.5s ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
     }
 
     .reveal-btn {
@@ -431,16 +463,29 @@
       justify-content: center;
       word-break: break-word;
       transition: all 0.2s;
+      gap: 8px;
+    }
+    .match-item .speaker-icon {
+      font-size: 16px;
+      color: var(--amber);
     }
     .match-item.selected {
       border-color: var(--amber);
       color: var(--amber);
+      background: rgba(232, 163, 61, 0.08);
     }
-    .match-item.matched {
+    .match-item.matched-correct {
       border-color: var(--sage);
       color: var(--sage);
-      background: rgba(111, 169, 122, 0.1);
-      opacity: 0.55;
+      background: rgba(111, 169, 122, 0.15);
+      opacity: 0.6;
+      cursor: default;
+    }
+    .match-item.matched-failed {
+      border-color: var(--rust);
+      color: var(--rust);
+      background: rgba(200, 86, 61, 0.15);
+      opacity: 0.5;
       cursor: default;
     }
     .match-item.wrong-flash {
@@ -448,16 +493,9 @@
       animation: shake 0.3s;
     }
     @keyframes shake {
-      0%,
-      100% {
-        transform: translateX(0);
-      }
-      25% {
-        transform: translateX(-4px);
-      }
-      75% {
-        transform: translateX(4px);
-      }
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
     }
 
     /* ============================================================
@@ -560,6 +598,24 @@
       color: var(--sage);
     }
 
+    .quit-btn {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--rust);
+      background: transparent;
+      color: var(--rust);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .quit-btn:hover {
+      background: rgba(200, 86, 61, 0.1);
+    }
+
     footer {
       margin-top: auto;
       text-align: center;
@@ -604,9 +660,9 @@
       <div id="category-warning" class="setup-warning"></div>
 
       <label class="field-label">Mode</label>
-      <div class="mode-row">
+      <div class="mode-row" id="mode-row">
         <div class="mode-btn active" data-mode="mc">Multiple Choice</div>
-        <div class="mode-btn" data-mode="match">Matching</div>
+        <div class="mode-btn" data-mode="verbs">Verbs</div>
       </div>
 
       <label class="field-label">MC Type</label>
@@ -630,9 +686,9 @@
           <div class="stat-acc" id="stat-mc-acc">0%</div>
         </div>
         <div class="stat-col">
-          <div class="stat-mode">Matching</div>
-          <div class="stat-num" id="stat-match-num">0/0</div>
-          <div class="stat-acc" id="stat-match-acc">0%</div>
+          <div class="stat-mode">Verbs</div>
+          <div class="stat-num" id="stat-verbs-num">0/0</div>
+          <div class="stat-acc" id="stat-verbs-acc">0%</div>
         </div>
       </div>
       <div class="tag" style="margin:20px 0 8px;">Recent sessions</div>
@@ -646,7 +702,6 @@
 
     <!-- ===== MC SCREEN ===== -->
     <div class="hidden" id="screen-mc">
-      <div class="progress-bar"><div class="progress-fill" id="mc-progress"></div></div>
       <div class="score-row">
         <span id="mc-count">Question 0</span>
         <div class="hearts-display" id="mc-hearts"></div>
@@ -658,19 +713,22 @@
       </div>
       <div id="mc-options"></div>
       <div id="mc-reveal-container"></div>
+      <button class="quit-btn" id="mc-quit-btn">✕ Quit</button>
     </div>
 
     <!-- ===== MATCH SCREEN ===== -->
     <div class="hidden" id="screen-match">
-      <div class="progress-bar"><div class="progress-fill" id="match-progress"></div></div>
       <div class="score-row">
-        <span id="match-count">Round 1</span>
-        <span id="match-score">Score: 0</span>
+        <span id="match-count">Conjugate: </span>
+        <span id="match-score">Correct: 0/6</span>
+        <div class="hearts-display" id="match-hearts"></div>
       </div>
       <div class="match-grid">
         <div class="match-col" id="match-left"></div>
         <div class="match-col" id="match-right"></div>
       </div>
+      <div id="match-status" class="status-msg" style="margin-top:10px;"></div>
+      <button class="quit-btn" id="match-quit-btn">✕ Quit</button>
     </div>
 
     <!-- ===== END SCREEN ===== -->
@@ -687,16 +745,59 @@
 
   <script>
     // ================================================================
+    //  VOICE MANAGER - IndexedDB (shared with editor)
+    // ================================================================
+    const VoiceManager = {
+      dbName: 'WordDrillsVoices',
+      dbVersion: 1,
+      storeName: 'recordings',
+      db: null,
+
+      async init() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: 'wordKey' });
+            }
+          };
+          request.onsuccess = (event) => { this.db = event.target.result;
+            resolve(); };
+          request.onerror = (event) => { reject(event.target.error); };
+        });
+      },
+
+      async getRecording(wordKey) {
+        return new Promise((resolve, reject) => {
+          const transaction = this.db.transaction([this.storeName], 'readonly');
+          const store = transaction.objectStore(this.storeName);
+          const request = store.get(wordKey);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      },
+
+      playAudio(audioBlob) {
+        const url = URL.createObjectURL(audioBlob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.play();
+        return audio;
+      }
+    };
+
+    // ================================================================
     //  CONFIGURATION
     // ================================================================
     const CONFIG = {
       K: 0.25,
       FLOOR: 0.05,
       COOLDOWN_FRACTION: 0.5,
-      MATCH_ROUND_WORTH: 4,
       MAX_HEARTS: 5,
       BETA: 0.05,
       ROUND_SIZE: 6,
+      PRONOUNS: ["ja", "ty", "my", "wy", "on/ona/ono", "oni"],
       FIREBASE: {
         apiKey: "AIzaSyD5kV-BApIMmiJItiBsgDMrsyxKpFh1OI4",
         authDomain: "placcounts.firebaseapp.com",
@@ -719,7 +820,6 @@
       statsLoaded: false,
       saveTimer: null,
 
-      // MC State
       mc: {
         queue: [],
         index: 0,
@@ -735,16 +835,27 @@
         activeCats: []
       },
 
-      // Match State
-      match: {
-        pool: [],
-        roundWords: [],
+      verbs: {
+        queue: [],
+        currentVerb: null,
         score: 0,
-        total: 0,
-        activeCats: [],
-        leftSel: null,
-        rightSel: null,
-        matchedCount: 0
+        totalAttempts: 0,
+        hearts: CONFIG.MAX_HEARTS,
+        mcCorrect: 0,
+        matchCorrect: 0,
+        phase: 'mc',
+        _mcAnswered: false
+      },
+
+      matching: {
+        pairs: [],
+        onComplete: null,
+        onHeartLost: null,
+        selectedLeft: null,
+        selectedRight: null,
+        matchedCount: 0,
+        correctCount: 0,
+        isLocked: false
       }
     };
 
@@ -755,7 +866,7 @@
     const $$ = sel => document.querySelectorAll(sel);
 
     // ================================================================
-    //  UTILITY FUNCTIONS
+    //  UTILITY
     // ================================================================
     const Utils = {
       capitalize: s => s.charAt(0).toUpperCase() + s.slice(1),
@@ -957,8 +1068,9 @@
         $('history-card').classList.toggle('hidden', screenName !== 'setup');
       },
 
-      updateHearts(hearts) {
-        const container = $('mc-hearts');
+      updateHearts(hearts, targetId = 'mc-hearts') {
+        const container = $(targetId);
+        if (!container) return;
         let html = '';
         for (let i = 0; i < CONFIG.MAX_HEARTS; i++) {
           html += `<span class="${i < hearts ? 'heart-filled' : 'heart-empty'}">♥</span>`;
@@ -976,21 +1088,6 @@
         const el = $('mc-category');
         el.textContent = '';
         el.className = 'word-caption';
-      },
-
-      showRevealButton(onClick) {
-        const container = $('mc-reveal-container');
-        container.innerHTML = '';
-        const btn = document.createElement('button');
-        btn.className = 'reveal-btn';
-        btn.textContent = '🔍 Show Category';
-        btn.addEventListener('click', () => {
-          onClick();
-          btn.disabled = true;
-          btn.textContent = '✓ Category Revealed';
-          btn.style.opacity = '0.6';
-        });
-        container.appendChild(btn);
       },
 
       clearRevealButton() {
@@ -1016,20 +1113,22 @@
     //  WORDS & CATEGORIES
     // ================================================================
     const WordManager = {
-      load() {
-        return fetch('words.json')
-          .then(r => r.json())
-          .then(data => {
-            State.allWords = data;
-            this.populateCategories();
-            $('setup-status').textContent = data.length + ' words loaded';
-            return data;
-          })
-          .catch(() => {
-            $('setup-status').textContent = 'Could not load words.json — check it is in the same folder.';
-            $('setup-status').className = 'status-msg error';
-            return [];
-          });
+      async load() {
+        try {
+          // Try loading both files
+          const [wordsRes, verbsRes] = await Promise.all([
+            fetch('words.json').then(r => r.ok ? r.json() : []),
+            fetch('verbs.json').then(r => r.ok ? r.json() : [])
+          ]);
+          State.allWords = [...wordsRes, ...verbsRes];
+          this.populateCategories();
+          $('setup-status').textContent = State.allWords.length + ' words loaded';
+          return State.allWords;
+        } catch (e) {
+          $('setup-status').textContent = 'Could not load words.json or verbs.json — check files exist.';
+          $('setup-status').className = 'status-msg error';
+          return [];
+        }
       },
 
       populateCategories() {
@@ -1087,6 +1186,32 @@
     };
 
     // ================================================================
+    //  AUDIO HELPERS
+    // ================================================================
+    const AudioHelper = {
+      async getSpeakerHTML(wordObj, size = '20px') {
+        if (!wordObj) return '';
+        const key = Utils.wordKey(wordObj);
+        const record = await VoiceManager.getRecording(key);
+        if (!record) return '';
+        return `<span class="speaker-icon" style="font-size:${size};" data-wordkey="${key}" onclick="event.stopPropagation(); AudioHelper.play('${key}')">🔊</span>`;
+      },
+
+      async play(wordKey) {
+        const record = await VoiceManager.getRecording(wordKey);
+        if (record && record.audioBlob) {
+          VoiceManager.playAudio(record.audioBlob);
+          // Visual feedback
+          const icons = document.querySelectorAll(`.speaker-icon[data-wordkey="${wordKey}"]`);
+          icons.forEach(icon => {
+            icon.classList.add('playing');
+            setTimeout(() => icon.classList.remove('playing'), 500);
+          });
+        }
+      }
+    };
+
+    // ================================================================
     //  GAME - MULTIPLE CHOICE
     // ================================================================
     const MC = {
@@ -1109,9 +1234,11 @@
 
         UI.show('mc');
         this.render();
+        $('mc-quit-btn').classList.remove('hidden');
+        $('mc-quit-btn').onclick = () => this.quit();
       },
 
-      render() {
+      async render() {
         const mc = State.mc;
         const isCategoryMode = State.settings.mcType === 'category';
         const isReversed = State.settings.mcType === 'reversed';
@@ -1137,13 +1264,27 @@
         mc.answered = false;
         mc.wrongAttemptRecorded = false;
 
+        // Word display
+        let wordText, displayWord;
         if (isCategoryMode) {
-          $('mc-word').textContent = mc.currentItem.word;
+          wordText = mc.currentItem.word;
+          displayWord = mc.currentItem;
         } else if (isReversed) {
-          $('mc-word').textContent = mc.currentItem.translation;
+          wordText = mc.currentItem.translation;
+          displayWord = mc.currentItem; // Still use Polish word for audio
         } else {
-          $('mc-word').textContent = mc.currentItem.word;
+          wordText = mc.currentItem.word;
+          displayWord = mc.currentItem;
         }
+
+        // Build word display with speaker (for normal and category mode)
+        const wordDisplay = $('mc-word');
+        let speakerHTML = '';
+        if (!isReversed) {
+          // Normal or category: show speaker on word
+          speakerHTML = await AudioHelper.getSpeakerHTML(displayWord);
+        }
+        wordDisplay.innerHTML = wordText + ' ' + speakerHTML;
 
         UI.hideCategory();
         UI.clearRevealButton();
@@ -1151,7 +1292,6 @@
         $('mc-count').textContent = 'Question ' + (mc.index + 1);
         UI.updateHearts(mc.hearts);
         $('mc-score').textContent = '✅ ' + mc.score;
-        $('mc-progress').style.width = Math.min(100, (mc.index / (mc.index + 20)) * 100) + '%';
 
         let options = [];
         if (isCategoryMode) {
@@ -1163,7 +1303,8 @@
           options = categoryOptions.map(cat => ({
             text: Utils.capitalize(cat),
             value: cat,
-            isCorrect: cat === correctCat
+            isCorrect: cat === correctCat,
+            wordObj: null // No audio for categories
           }));
         } else {
           const correctTranslation = isReversed ? mc.currentItem.word : mc.currentItem.translation;
@@ -1173,10 +1314,14 @@
           })).slice(0, 3);
 
           const optionItems = Utils.shuffle([mc.currentItem, ...distractors]);
-          options = optionItems.map(item => ({
-            text: isReversed ? item.word : item.translation,
-            value: item,
-            isCorrect: (isReversed ? item.word : item.translation) === correctTranslation
+          options = await Promise.all(optionItems.map(async item => {
+            const isCorrect = (isReversed ? item.word : item.translation) === correctTranslation;
+            return {
+              text: isReversed ? item.word : item.translation,
+              value: item,
+              isCorrect: isCorrect,
+              wordObj: item // For audio (always Polish word)
+            };
           }));
         }
 
@@ -1185,14 +1330,22 @@
 
         const container = $('mc-options');
         container.innerHTML = '';
-        options.forEach((opt, idx) => {
+        for (let idx = 0; idx < options.length; idx++) {
+          const opt = options[idx];
           const btn = document.createElement('button');
           btn.className = 'option-btn';
-          btn.textContent = opt.text;
+          
+          // Add speaker icon for reversed mode (options are Polish)
+          let speakerHTML = '';
+          if (isReversed && opt.wordObj) {
+            speakerHTML = await AudioHelper.getSpeakerHTML(opt.wordObj, '18px');
+          }
+          
+          btn.innerHTML = speakerHTML + `<span class="option-text">${opt.text}</span>`;
           btn.dataset.index = idx;
           btn.addEventListener('click', () => this.handleAnswer(idx));
           container.appendChild(btn);
-        });
+        }
       },
 
       handleAnswer(index) {
@@ -1217,10 +1370,6 @@
             isCategoryMode
           );
 
-          UI.showRevealButton(() => {
-            UI.showCategory(mc.currentItem.category);
-          });
-
           const btn = $('mc-options').querySelector(`.option-btn[data-index="${index}"]`);
           btn.classList.add('wrong');
           btn.classList.add('used');
@@ -1234,7 +1383,6 @@
             }, 400);
             return;
           }
-
           return;
         }
 
@@ -1272,134 +1420,383 @@
       endGame() {
         const mc = State.mc;
         Game.end(mc.score, mc.totalAttempts);
+      },
+
+      quit() {
+        const mc = State.mc;
+        Game.end(mc.score, mc.totalAttempts);
       }
     };
 
     // ================================================================
-    //  GAME - MATCHING
+    //  MATCHING ENGINE
     // ================================================================
-    const Match = {
-      start(pool) {
-        const match = State.match;
-        match.activeCats = State.settings.categories.slice();
-        const targetLen = Math.floor(Math.min(1000, pool.length) / CONFIG.ROUND_SIZE) * CONFIG.ROUND_SIZE;
-        match.pool = Mastery.weightedSample(
-          pool,
-          State.wordStats,
-          State.categoryRounds,
-          targetLen
-        );
-        match.score = 0;
-        match.total = 0;
+    const MatchingEngine = {
+      start(pairs, onComplete, onHeartLost) {
+        const m = State.matching;
+        m.pairs = pairs.map(p => ({ ...p, status: 'unmatched' }));
+        m.onComplete = onComplete;
+        m.onHeartLost = onHeartLost;
+        m.selectedLeft = null;
+        m.selectedRight = null;
+        m.matchedCount = 0;
+        m.correctCount = 0;
+        m.isLocked = false;
+
         UI.show('match');
-        this.nextRound();
-      },
-
-      nextRound() {
-        const match = State.match;
-        if (match.pool.length < CONFIG.ROUND_SIZE) {
-          Game.end(match.score, match.total);
-          return;
-        }
-
-        match.roundWords = match.pool.splice(0, CONFIG.ROUND_SIZE);
-        Mastery.incrementRounds(State.categoryRounds, match.activeCats, CONFIG.MATCH_ROUND_WORTH);
-        match.matchedCount = 0;
-        match.leftSel = null;
-        match.rightSel = null;
+        $('match-count').textContent = 'Conjugate: ';
+        $('match-score').textContent = 'Correct: 0/' + pairs.length;
+        $('match-status').textContent = 'Select any item.';
         this.render();
       },
 
-      render() {
-        const match = State.match;
-        const total = match.roundWords.length;
-        $('match-count').textContent = `Round: ${total} pairs, ${match.pool.length} left`;
-        $('match-score').textContent = 'Score: ' + match.score;
-        $('match-progress').style.width = (match.matchedCount / total * 100) + '%';
-
-        const leftItems = Utils.shuffle(match.roundWords);
-        const rightItems = Utils.shuffle(match.roundWords);
-
+      async render() {
+        const m = State.matching;
         const leftCol = $('match-left');
         const rightCol = $('match-right');
         leftCol.innerHTML = '';
         rightCol.innerHTML = '';
 
-        leftItems.forEach(item => {
-          const d = document.createElement('div');
-          d.className = 'match-item';
-          d.textContent = item.word;
-          d.dataset.key = Utils.wordKey(item);
-          d.addEventListener('click', () => this.select('left', d, item));
-          leftCol.appendChild(d);
+        // Left column: fixed order
+        const sortedPairs = [...m.pairs].sort((a, b) => a.id - b.id);
+        for (const p of sortedPairs) {
+          const div = document.createElement('div');
+          let cls = 'match-item';
+          if (p.status === 'correct') cls += ' matched-correct';
+          else if (p.status === 'failed') cls += ' matched-failed';
+          div.className = cls;
+          // No speaker for pronouns
+          div.textContent = p.left;
+          div.dataset.id = p.id;
+          div.dataset.side = 'left';
+          if (p.status === 'unmatched') {
+            div.addEventListener('click', () => this.select('left', p.id, div));
+          } else {
+            div.style.cursor = 'default';
+          }
+          leftCol.appendChild(div);
+        }
+
+        // Right column: shuffled, show all
+        const rightPairs = Utils.shuffle(m.pairs);
+        for (const p of rightPairs) {
+          const div = document.createElement('div');
+          let cls = 'match-item';
+          if (p.status === 'correct') cls += ' matched-correct';
+          else if (p.status === 'failed') cls += ' matched-failed';
+          div.className = cls;
+          // No speaker for conjugations
+          div.textContent = p.right;
+          div.dataset.id = p.id;
+          div.dataset.side = 'right';
+          if (p.status === 'unmatched') {
+            div.addEventListener('click', () => this.select('right', p.id, div));
+          } else {
+            div.style.cursor = 'default';
+          }
+          rightCol.appendChild(div);
+        }
+
+        const total = m.pairs.length;
+        const done = m.pairs.filter(p => p.status !== 'unmatched').length;
+        $('match-score').textContent = 'Correct: ' + m.correctCount + '/' + total;
+
+        if (done === total) {
+          $('match-status').textContent = '✅ All matched!';
+          setTimeout(() => {
+            if (m.onComplete) {
+              m.onComplete({ correct: m.correctCount, total: total });
+            }
+          }, 500);
+        }
+      },
+
+      select(side, id, node) {
+        const m = State.matching;
+        if (m.isLocked) return;
+        const pair = m.pairs.find(p => p.id === id);
+        if (pair.status !== 'unmatched') return;
+
+        if (side === 'left') {
+          if (m.selectedLeft && m.selectedLeft.id === id) {
+            m.selectedLeft.node.classList.remove('selected');
+            m.selectedLeft = null;
+            $('match-status').textContent = 'Select any item.';
+            return;
+          }
+          if (m.selectedLeft) {
+            m.selectedLeft.node.classList.remove('selected');
+          }
+          m.selectedLeft = { id, node };
+          node.classList.add('selected');
+          $('match-status').textContent = 'Now select the matching conjugation.';
+        } else {
+          if (m.selectedRight && m.selectedRight.id === id) {
+            m.selectedRight.node.classList.remove('selected');
+            m.selectedRight = null;
+            $('match-status').textContent = 'Select any item.';
+            return;
+          }
+          if (m.selectedRight) {
+            m.selectedRight.node.classList.remove('selected');
+          }
+          m.selectedRight = { id, node };
+          node.classList.add('selected');
+          $('match-status').textContent = 'Now select the matching pronoun.';
+        }
+
+        if (m.selectedLeft && m.selectedRight) {
+          this.attemptMatch();
+        }
+      },
+
+      attemptMatch() {
+        const m = State.matching;
+        if (!m.selectedLeft || !m.selectedRight) return;
+        m.isLocked = true;
+
+        const leftId = m.selectedLeft.id;
+        const rightId = m.selectedRight.id;
+        const leftPair = m.pairs.find(p => p.id === leftId);
+        const rightPair = m.pairs.find(p => p.id === rightId);
+
+        if (leftPair.status !== 'unmatched' || rightPair.status !== 'unmatched') {
+          m.selectedLeft.node.classList.remove('selected');
+          m.selectedRight.node.classList.remove('selected');
+          m.selectedLeft = null;
+          m.selectedRight = null;
+          m.isLocked = false;
+          return;
+        }
+
+        const isMatch = (leftId === rightId);
+
+        if (isMatch) {
+          leftPair.status = 'correct';
+          rightPair.status = 'correct';
+          m.correctCount++;
+          m.matchedCount++;
+          $('match-status').textContent = '✅ Correct!';
+          $('match-status').className = 'status-msg success';
+          m.selectedLeft.node.classList.remove('selected');
+          m.selectedRight.node.classList.remove('selected');
+          m.selectedLeft = null;
+          m.selectedRight = null;
+          m.isLocked = false;
+          this.render();
+        } else {
+          leftPair.status = 'failed';
+          rightPair.status = 'failed';
+          m.matchedCount++;
+          if (m.onHeartLost) {
+            const shouldContinue = m.onHeartLost();
+            if (shouldContinue === false) {
+              m.isLocked = false;
+              return;
+            }
+          }
+          $('match-status').textContent = '❌ Wrong match!';
+          $('match-status').className = 'status-msg error';
+          m.selectedLeft.node.classList.add('wrong-flash');
+          m.selectedRight.node.classList.add('wrong-flash');
+          setTimeout(() => {
+            m.selectedLeft.node.classList.remove('selected', 'wrong-flash');
+            m.selectedRight.node.classList.remove('selected', 'wrong-flash');
+            m.selectedLeft = null;
+            m.selectedRight = null;
+            m.isLocked = false;
+            $('match-status').className = 'status-msg';
+            this.render();
+          }, 500);
+        }
+      }
+    };
+
+    // ================================================================
+    //  GAME - VERBS MODE
+    // ================================================================
+    const VerbsMode = {
+      start(pool) {
+        const verbPool = pool.filter(w => w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
+        if (verbPool.length === 0) {
+          $('setup-status').textContent = 'No verbs with conjugations found! Add "conjugations" array to verbs in words.json';
+          $('setup-status').className = 'status-msg error';
+          return;
+        }
+        const v = State.verbs;
+        v.queue = Mastery.weightedSample(verbPool, State.wordStats, State.categoryRounds, 1000);
+        v.score = 0;
+        v.totalAttempts = 0;
+        v.hearts = CONFIG.MAX_HEARTS;
+        v.mcCorrect = 0;
+        v.matchCorrect = 0;
+        v.phase = 'mc';
+        v._mcAnswered = false;
+        this.nextVerb();
+        $('match-quit-btn').classList.remove('hidden');
+        $('match-quit-btn').onclick = () => this.quit();
+        $('mc-quit-btn').classList.remove('hidden');
+        $('mc-quit-btn').onclick = () => this.quit();
+      },
+
+      nextVerb() {
+        const v = State.verbs;
+        if (v.queue.length === 0 || v.hearts <= 0) {
+          this.endGame();
+          return;
+        }
+        v.currentVerb = v.queue.shift();
+        v.phase = 'mc';
+        v._mcAnswered = false;
+        this.runMC();
+      },
+
+      async runMC() {
+        const v = State.verbs;
+        const verb = v.currentVerb;
+        const isReversed = State.settings.mcType === 'reversed';
+        const isCategory = false;
+
+        UI.show('mc');
+        UI.clearRevealButton();
+        UI.hideCategory();
+        UI.updateHearts(v.hearts);
+        $('mc-score').textContent = '✅ ' + v.score;
+        $('mc-count').textContent = 'Verb MC';
+
+        let wordText, displayWord;
+        if (isReversed) {
+          wordText = verb.translation;
+          displayWord = verb;
+        } else {
+          wordText = verb.word;
+          displayWord = verb;
+        }
+
+        // Speaker only on the verb display (always)
+        const wordDisplay = $('mc-word');
+        const speakerHTML = await AudioHelper.getSpeakerHTML(displayWord);
+        wordDisplay.innerHTML = wordText + ' ' + speakerHTML;
+
+        const pool = WordManager.getActivePool();
+        let options = [];
+        const distractors = Utils.shuffle(pool.filter(w => {
+          const compare = isReversed ? w.word : w.translation;
+          return compare !== (isReversed ? verb.word : verb.translation);
+        })).slice(0, 3);
+        const optionItems = Utils.shuffle([verb, ...distractors]);
+        options = await Promise.all(optionItems.map(async item => {
+          const isCorrect = (isReversed ? item.word : item.translation) === (isReversed ? verb.word : verb.translation);
+          return {
+            text: isReversed ? item.word : item.translation,
+            value: item,
+            isCorrect: isCorrect,
+            wordObj: item // For audio (always Polish)
+          };
+        }));
+
+        const container = $('mc-options');
+        container.innerHTML = '';
+        for (let idx = 0; idx < options.length; idx++) {
+          const opt = options[idx];
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          // No speaker on conjugations
+          btn.innerHTML = `<span class="option-text">${opt.text}</span>`;
+          btn.dataset.index = idx;
+          btn.addEventListener('click', () => this.handleMCAnswer(idx, options));
+          container.appendChild(btn);
+        }
+      },
+
+      handleMCAnswer(index, options) {
+        const v = State.verbs;
+        if (v._mcAnswered) return;
+        v._mcAnswered = true;
+
+        const verb = v.currentVerb;
+        const option = options[index];
+        const isCorrect = option.isCorrect;
+        const isCategory = false;
+
+        Mastery.recordAttempt(verb, State.wordStats, State.categoryRounds, isCorrect, isCategory);
+        v.totalAttempts++;
+        if (isCorrect) {
+          v.mcCorrect++;
+          v.score++;
+        } else {
+          v.hearts--;
+          UI.updateHearts(v.hearts);
+          if (v.hearts <= 0) {
+            const btns = $('mc-options').querySelectorAll('.option-btn');
+            btns.forEach((b, i) => {
+              b.disabled = true;
+              if (options[i].isCorrect) b.classList.add('correct');
+            });
+            setTimeout(() => this.endGame(), 1000);
+            return;
+          }
+        }
+
+        const btns = $('mc-options').querySelectorAll('.option-btn');
+        btns.forEach((b, i) => {
+          b.disabled = true;
+          if (options[i].isCorrect) b.classList.add('correct');
+          if (i === index && !isCorrect) b.classList.add('wrong');
         });
 
-        rightItems.forEach(item => {
-          const d = document.createElement('div');
-          d.className = 'match-item';
-          d.textContent = item.translation;
-          d.dataset.key = Utils.wordKey(item);
-          d.addEventListener('click', () => this.select('right', d, item));
-          rightCol.appendChild(d);
+        setTimeout(() => {
+          v._mcAnswered = false;
+          v.phase = 'matching';
+          this.runMatching();
+        }, 800);
+      },
+
+      runMatching() {
+        const v = State.verbs;
+        const verb = v.currentVerb;
+        const conj = verb.conjugations;
+        const pronouns = CONFIG.PRONOUNS;
+        const pairs = pronouns.map((p, i) => ({
+          id: i,
+          left: p,
+          right: conj[i] || '?'
+        }));
+
+        $('match-count').textContent = 'Conjugate: ' + verb.word;
+        $('match-score').textContent = 'Correct: 0/' + pairs.length;
+        $('match-status').textContent = 'Select any item.';
+        UI.updateHearts(v.hearts, 'match-hearts');
+
+        MatchingEngine.start(pairs, (result) => {
+          v.matchCorrect += result.correct;
+          v.totalAttempts += result.total;
+          v.score += result.correct;
+          const allCorrect = result.correct === pairs.length;
+          Mastery.recordAttempt(verb, State.wordStats, State.categoryRounds, allCorrect, false);
+          setTimeout(() => {
+            v.phase = 'mc';
+            this.nextVerb();
+          }, 600);
+        }, () => {
+          v.hearts--;
+          UI.updateHearts(v.hearts, 'match-hearts');
+          if (v.hearts <= 0) {
+            this.endGame();
+            return false;
+          }
+          return true;
         });
       },
 
-      select(side, node, item) {
-        const match = State.match;
-        if (node.classList.contains('matched')) return;
+      endGame() {
+        const v = State.verbs;
+        Game.end(v.score, v.totalAttempts);
+      },
 
-        if (side === 'left') {
-          if (match.leftSel) match.leftSel.node.classList.remove('selected');
-          match.leftSel = { node, item };
-          node.classList.add('selected');
-        } else {
-          if (match.rightSel) match.rightSel.node.classList.remove('selected');
-          match.rightSel = { node, item };
-          node.classList.add('selected');
-        }
-
-        if (match.leftSel && match.rightSel) {
-          const isMatch = match.leftSel.item.word === match.rightSel.item.word;
-          const leftItem = match.leftSel.item;
-          const rightItem = match.rightSel.item;
-
-          if (isMatch) {
-            match.leftSel.node.classList.remove('selected');
-            match.rightSel.node.classList.remove('selected');
-            match.leftSel.node.classList.add('matched');
-            match.rightSel.node.classList.add('matched');
-            match.score++;
-            match.total++;
-            match.matchedCount++;
-            match.leftSel = null;
-            match.rightSel = null;
-
-            Mastery.recordAttempt(leftItem, State.wordStats, State.categoryRounds, true);
-
-            $('match-progress').style.width = (match.matchedCount / match.roundWords.length * 100) + '%';
-            $('match-score').textContent = 'Score: ' + match.score;
-
-            if (match.matchedCount === match.roundWords.length) {
-              setTimeout(() => this.nextRound(), 500);
-            }
-          } else {
-            match.total++;
-            Mastery.recordAttempt(leftItem, State.wordStats, State.categoryRounds, false);
-            Mastery.recordAttempt(rightItem, State.wordStats, State.categoryRounds, false);
-
-            const l = match.leftSel.node;
-            const r = match.rightSel.node;
-            l.classList.add('wrong-flash');
-            r.classList.add('wrong-flash');
-
-            setTimeout(() => {
-              l.classList.remove('selected', 'wrong-flash');
-              r.classList.remove('selected', 'wrong-flash');
-              match.leftSel = null;
-              match.rightSel = null;
-            }, 350);
-          }
-        }
+      quit() {
+        const v = State.verbs;
+        Game.end(v.score, v.totalAttempts);
       }
     };
 
@@ -1452,18 +1849,19 @@
       },
 
       render(history) {
-        const agg = { mc: { correct: 0, total: 0 }, match: { correct: 0, total: 0 } };
+        const agg = { mc: { correct: 0, total: 0 }, verbs: { correct: 0, total: 0 } };
         history.forEach(h => {
-          if (agg[h.mode]) {
-            agg[h.mode].correct += h.correct;
-            agg[h.mode].total += h.total;
+          const key = h.mode === 'verbs' ? 'verbs' : 'mc';
+          if (agg[key]) {
+            agg[key].correct += h.correct || 0;
+            agg[key].total += h.total || 0;
           }
         });
 
         $('stat-mc-num').textContent = agg.mc.correct + '/' + agg.mc.total;
         $('stat-mc-acc').textContent = (agg.mc.total ? Math.round(agg.mc.correct / agg.mc.total * 100) : 0) + '%';
-        $('stat-match-num').textContent = agg.match.correct + '/' + agg.match.total;
-        $('stat-match-acc').textContent = (agg.match.total ? Math.round(agg.match.correct / agg.match.total * 100) : 0) + '%';
+        $('stat-verbs-num').textContent = agg.verbs.correct + '/' + agg.verbs.total;
+        $('stat-verbs-acc').textContent = (agg.verbs.total ? Math.round(agg.verbs.correct / agg.verbs.total * 100) : 0) + '%';
 
         const container = $('history-list');
         if (history.length === 0) {
@@ -1471,7 +1869,7 @@
           return;
         }
 
-        const modeLabel = m => m === 'mc' ? 'MC' : 'Matching';
+        const modeLabel = m => m === 'verbs' ? 'Verbs' : 'MC';
         const allCats = [...new Set(State.allWords.map(w => w.category))];
         const catLabel = cats => {
           if (!Array.isArray(cats)) return cats === 'all' ? 'All' : Utils.capitalize(cats);
@@ -1480,11 +1878,11 @@
         };
 
         container.innerHTML = history.map(h =>
-      `<div class="history-row">
-       <span><span class="history-mode">${modeLabel(h.mode)}${h.mcType ? ' (' + h.mcType + ')' : ''}</span>
-        <span class="history-score">✅ ${h.correct}</span></span>
-        <span class="history-cat">${catLabel(h.categories !== undefined ? h.categories : h.category)}</span>
-        </div>`
+          `<div class="history-row">
+           <span><span class="history-mode">${modeLabel(h.mode)}${h.mcType ? ' (' + h.mcType + ')' : ''}</span>
+            <span class="history-score">✅ ${h.correct}</span></span>
+            <span class="history-cat">${catLabel(h.categories !== undefined ? h.categories : h.category)}</span>
+          </div>`
         ).join('');
       }
     };
@@ -1529,8 +1927,8 @@
         $('header-tag').textContent = 'login';
         $('stat-mc-num').textContent = '0/0';
         $('stat-mc-acc').textContent = '0%';
-        $('stat-match-num').textContent = '0/0';
-        $('stat-match-acc').textContent = '0%';
+        $('stat-verbs-num').textContent = '0/0';
+        $('stat-verbs-acc').textContent = '0%';
         $('history-list').innerHTML = '<div class="history-empty">Sign in to see history</div>';
       }
     };
@@ -1544,12 +1942,22 @@
           $('category-options').classList.toggle('hidden');
         });
 
-        $$('.mode-row .mode-btn[data-mode]').forEach(btn => {
+        $$('#mode-row .mode-btn').forEach(btn => {
           btn.addEventListener('click', () => {
-            $$('.mode-row .mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
+            $$('#mode-row .mode-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             State.settings.mode = btn.dataset.mode;
-            $('mc-type-row').classList.toggle('hidden', State.settings.mode !== 'mc');
+            const catBtn = document.querySelector('.mc-type-btn[data-mctype="category"]');
+            if (State.settings.mode === 'verbs') {
+              catBtn.style.display = 'none';
+              if (State.settings.mcType === 'category') {
+                State.settings.mcType = 'normal';
+                document.querySelector('.mc-type-btn[data-mctype="normal"]').classList.add('active');
+                document.querySelector('.mc-type-btn[data-mctype="category"]').classList.remove('active');
+              }
+            } else {
+              catBtn.style.display = '';
+            }
             WordManager.validate();
           });
         });
@@ -1584,6 +1992,12 @@
           return;
         }
 
+        if (State.settings.mode === 'verbs' && State.settings.mcType === 'category') {
+          $('setup-status').textContent = 'Category mode not available for Verbs.';
+          $('setup-status').className = 'status-msg error';
+          return;
+        }
+
         if (State.settings.mcType === 'category' && State.settings.categories.length < 4) {
           $('setup-status').textContent = 'Category mode requires at least 4 categories.';
           $('setup-status').className = 'status-msg error';
@@ -1591,20 +2005,16 @@
         }
 
         const pool = WordManager.getActivePool();
+        if (pool.length < 2) {
+          $('setup-status').textContent = 'Need at least 2 words in selected categories.';
+          $('setup-status').className = 'status-msg error';
+          return;
+        }
+
         if (State.settings.mode === 'mc') {
-          if (pool.length < 2) {
-            $('setup-status').textContent = 'Need at least 2 words in selected categories.';
-            $('setup-status').className = 'status-msg error';
-            return;
-          }
           MC.start(pool);
         } else {
-          if (pool.length < CONFIG.ROUND_SIZE) {
-            $('setup-status').textContent = 'Need at least ' + CONFIG.ROUND_SIZE + ' words for matching.';
-            $('setup-status').className = 'status-msg error';
-            return;
-          }
-          Match.start(pool);
+          VerbsMode.start(pool);
         }
       }
     };
@@ -1621,7 +2031,7 @@
       if (!State.currentUser) return;
       const pool = WordManager.getActivePool();
       if (State.settings.mode === 'mc') MC.start(pool);
-      else Match.start(pool);
+      else VerbsMode.start(pool);
     });
 
     $('change-settings-btn').addEventListener('click', () => UI.show('setup', State.currentUser));
@@ -1632,6 +2042,7 @@
     async function init() {
       Firebase.init();
       Setup.init();
+      await VoiceManager.init();
       await WordManager.load();
       if (State.currentUser) {
         await Login.afterLogin();
