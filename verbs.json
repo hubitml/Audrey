@@ -128,5 +128,135 @@
       "Pije",
       "Piją"
     ]
+  },
+  {
+    "word": "Kochać",
+    "translation": "Love",
+    "category": "Verbs",
+    "conjugations": [
+      "Kocham",
+      "Kochasz",
+      "Kochamy",
+      "Kochacię",
+      "Kocha",
+      "Kochają"
+    ]
+  },
+  {
+    "word": "Móc",
+    "translation": "Can / Be Able",
+    "category": "Verbs",
+    "conjugations": [
+      "Mogę",
+      "Możesz",
+      "Możemy",
+      "Możecie",
+      "Może",
+      "Mogą"
+    ]
+  },
+  {
+    "word": "Myśleć",
+    "translation": "Think",
+    "category": "Verbs",
+    "conjugations": [
+      "Myślę",
+      "Myślisz",
+      "Myślimy",
+      "Myślicię",
+      "Myśli",
+      "Myślą"
+    ]
+  },
+  {
+    "word": "Stać",
+    "translation": "Stand",
+    "category": "Verbs",
+    "conjugations": [
+      "Stoję",
+      "Stojisz",
+      "Stojimy",
+      "Stojicię",
+      "Stoji",
+      "Stoją"
+    ]
+  },
+  {
+    "word": "Siedzieć",
+    "translation": "Sit",
+    "category": "Verbs",
+    "conjugations": [
+      "Siedzę",
+      "Siedzisz",
+      "Siedzimy",
+      "Siedzicię",
+      "Siedzi",
+      "Siedzą"
+    ]
+  },
+  {
+    "word": "Leżeć",
+    "translation": "Lie [position]",
+    "category": "Verbs",
+    "conjugations": [
+      "Leżę",
+      "Leżysz",
+      "Leżymy",
+      "Leżycię",
+      "Leży",
+      "Leżą"
+    ]
+  },
+  {
+    "word": "Pracować",
+    "translation": "Work",
+    "category": "Verbs",
+    "conjugations": [
+      "Pracuję",
+      "Pracujesz",
+      "Pracujemy",
+      "Pracujecię",
+      "Pracuję",
+      "Pracują"
+    ]
+  },
+  {
+    "word": "Kupować",
+    "translation": "Buy",
+    "category": "Verbs",
+    "conjugations": [
+      "Kupuję",
+      "Kupujesz",
+      "Kupujemy",
+      "Kupujemy",
+      "Kupuje",
+      "Kupują"
+    ]
+  },
+  {
+    "word": "Tłumaczyć",
+    "translation": "Explain/Translate",
+    "category": "Verbs",
+    "conjugations": [
+      "Tłumaczę",
+      "Tłumaczysz",
+      "Tłumaczymy",
+      "Tłumaczycię",
+      "Tłumaczy",
+      "Tłumaczą"
+    ]
+  },
+  {
+    "word": "Myć",
+    "translation": "Wash",
+    "category": "Verbs",
+    "conjugations": [
+      "Myję",
+      "Myjesz",
+      "Myjemy",
+      "Myjecię",
+      "Myje",
+      "Myją"
+    ]
   }
 ]
