@@ -1172,10 +1172,15 @@
       },
 
       getActivePool() {
-        // If Verbs mode, only use verbs category
+        // If Verbs mode, find any word with conjugations array
         if (State.settings.mode === 'verbs') {
-          return State.allWords.filter(w => w.category === 'verbs' && w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
+          return State.allWords.filter(w => 
+            w.conjugations && 
+            Array.isArray(w.conjugations) && 
+            w.conjugations.length === 6
+          );
         }
+        // Otherwise, filter by selected categories
         return State.allWords.filter(w => State.settings.categories.includes(w.category));
       },
 
@@ -1430,7 +1435,6 @@
 
       quit() {
         const mc = State.mc;
-        // Save progress before ending
         Game.end(mc.score, mc.totalAttempts);
       }
     };
@@ -1803,7 +1807,6 @@
 
       quit() {
         const v = State.verbs;
-        // Save progress before ending
         Game.end(v.score, v.totalAttempts);
       }
     };
@@ -2016,15 +2019,19 @@
           return;
         }
 
-        if (State.settings.mode === 'mc' && State.settings.categories.length === 0) {
-          $('setup-status').textContent = 'Select at least one category.';
-          $('setup-status').className = 'status-msg error';
-          return;
-        }
-
-        if (State.settings.mode === 'verbs') {
-          // Force categories to ['verbs'] for verbs mode
-          State.settings.categories = ['verbs'];
+        // Skip category validation for Verbs mode
+        if (State.settings.mode !== 'verbs') {
+          if (State.settings.categories.length === 0) {
+            $('setup-status').textContent = 'Select at least one category.';
+            $('setup-status').className = 'status-msg error';
+            return;
+          }
+          
+          if (State.settings.mcType === 'category' && State.settings.categories.length < 4) {
+            $('setup-status').textContent = 'Category mode requires at least 4 categories.';
+            $('setup-status').className = 'status-msg error';
+            return;
+          }
         }
 
         if (State.settings.mode === 'verbs' && State.settings.mcType === 'category') {
@@ -2033,17 +2040,21 @@
           return;
         }
 
-        if (State.settings.mcType === 'category' && State.settings.categories.length < 4) {
-          $('setup-status').textContent = 'Category mode requires at least 4 categories.';
-          $('setup-status').className = 'status-msg error';
-          return;
-        }
-
         const pool = WordManager.getActivePool();
-        if (pool.length < 2) {
-          $('setup-status').textContent = 'Need at least 2 words in selected categories.';
-          $('setup-status').className = 'status-msg error';
-          return;
+        
+        // Different validation for each mode
+        if (State.settings.mode === 'verbs') {
+          if (pool.length < 1) {
+            $('setup-status').textContent = 'No verbs with conjugations found. Make sure your verbs have a "conjugations" array with 6 forms.';
+            $('setup-status').className = 'status-msg error';
+            return;
+          }
+        } else {
+          if (pool.length < 2) {
+            $('setup-status').textContent = 'Need at least 2 words in selected categories.';
+            $('setup-status').className = 'status-msg error';
+            return;
+          }
         }
 
         if (State.settings.mode === 'mc') {
