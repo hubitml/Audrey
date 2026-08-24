@@ -481,12 +481,8 @@
       opacity: 0.6;
       cursor: default;
     }
-    .match-item.matched-failed {
-      border-color: var(--rust);
-      color: var(--rust);
-      background: rgba(200, 86, 61, 0.15);
-      opacity: 0.5;
-      cursor: default;
+    .match-item.erred {
+      opacity: 0.55;
     }
     .match-item.wrong-flash {
       border-color: var(--rust);
@@ -858,7 +854,8 @@
         selectedRight: null,
         matchedCount: 0,
         correctCount: 0,
-        isLocked: false
+        isLocked: false,
+        erred: new Set()
       }
     };
 
@@ -1441,7 +1438,7 @@
     };
 
     // ================================================================
-    //  MATCHING ENGINE - FIXED
+    //  MATCHING ENGINE - FIXED with erred tracking
     // ================================================================
     const MatchingEngine = {
       start(pairs, onComplete, onHeartLost) {
@@ -1454,7 +1451,8 @@
         m.matchedCount = 0;
         m.correctCount = 0;
         m.isLocked = false;
-        
+        m.erred = new Set(); // Tracks which items have already caused a heart loss
+
         // Shuffle right column ONCE at the start
         m.shuffledRight = Utils.shuffle(m.pairs.map(p => p.id));
 
@@ -1478,7 +1476,8 @@
           const div = document.createElement('div');
           let cls = 'match-item';
           if (p.status === 'correct') cls += ' matched-correct';
-          else if (p.status === 'failed') cls += ' matched-failed';
+          // Check if this item has erred
+          if (m.erred.has('L' + p.id)) cls += ' erred';
           div.className = cls;
           div.textContent = p.left;
           div.dataset.id = p.id;
@@ -1497,7 +1496,7 @@
           const div = document.createElement('div');
           let cls = 'match-item';
           if (p.status === 'correct') cls += ' matched-correct';
-          else if (p.status === 'failed') cls += ' matched-failed';
+          if (m.erred.has('R' + p.id)) cls += ' erred';
           div.className = cls;
           div.textContent = p.right;
           div.dataset.id = p.id;
@@ -1593,22 +1592,17 @@
           $('match-status').className = 'status-msg success';
           m.selectedLeft.node.classList.remove('selected');
           m.selectedRight.node.classList.remove('selected');
-          
-          // Update just these two items
           m.selectedLeft.node.className = 'match-item matched-correct';
           m.selectedLeft.node.style.cursor = 'default';
           m.selectedRight.node.className = 'match-item matched-correct';
           m.selectedRight.node.style.cursor = 'default';
-          
           m.selectedLeft = null;
           m.selectedRight = null;
           m.isLocked = false;
-          
-          // Update score
+
           const total = m.pairs.length;
           $('match-score').textContent = 'Correct: ' + m.correctCount + '/' + total;
-          
-          // Check if all done
+
           const done = m.pairs.filter(p => p.status !== 'unmatched').length;
           if (done === total) {
             $('match-status').textContent = '✅ All matched!';
@@ -1619,40 +1613,39 @@
             }, 500);
           }
         } else {
-          // Wrong match – mark both as failed
-          leftPair.status = 'failed';
-          rightPair.status = 'failed';
-          m.matchedCount++;
-          if (m.onHeartLost) {
-            const shouldContinue = m.onHeartLost();
-            if (shouldContinue === false) {
-              m.isLocked = false;
-              return;
-            }
-          }
+          // WRONG MATCH — no permanent lock, punish only for genuinely new mistakes
+          const leftKey = 'L' + leftId;
+          const rightKey = 'R' + rightId;
+          const alreadyErred = m.erred.has(leftKey) || m.erred.has(rightKey);
+
           $('match-status').textContent = '❌ Wrong match!';
           $('match-status').className = 'status-msg error';
-          
-          m.selectedLeft.node.classList.remove('selected');
-          m.selectedRight.node.classList.remove('selected');
-          m.selectedLeft.node.className = 'match-item matched-failed';
-          m.selectedRight.node.className = 'match-item matched-failed';
-          m.selectedLeft.node.style.cursor = 'default';
-          m.selectedRight.node.style.cursor = 'default';
-          
-          // Remove click listeners by cloning
-          const leftClone = m.selectedLeft.node.cloneNode(true);
-          m.selectedLeft.node.parentNode.replaceChild(leftClone, m.selectedLeft.node);
-          const rightClone = m.selectedRight.node.cloneNode(true);
-          m.selectedRight.node.parentNode.replaceChild(rightClone, m.selectedRight.node);
-          
+
+          const leftNode = m.selectedLeft.node;
+          const rightNode = m.selectedRight.node;
+
+          leftNode.classList.remove('selected');
+          rightNode.classList.remove('selected');
+          leftNode.classList.add('wrong-flash', 'erred');
+          rightNode.classList.add('wrong-flash', 'erred');
+
+          m.erred.add(leftKey);
+          m.erred.add(rightKey);
+
           m.selectedLeft = null;
           m.selectedRight = null;
-          m.isLocked = false;
-          
+
           setTimeout(() => {
+            leftNode.classList.remove('wrong-flash');
+            rightNode.classList.remove('wrong-flash');
+            $('match-status').textContent = 'Select any item.';
             $('match-status').className = 'status-msg';
-          }, 500);
+            m.isLocked = false;
+          }, 400);
+
+          if (!alreadyErred && m.onHeartLost) {
+            m.onHeartLost();
+          }
         }
       }
     };
