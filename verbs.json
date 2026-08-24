@@ -1,0 +1,132 @@
+[
+  {
+    "word": "Być",
+    "translation": "Be",
+    "category": "Verbs",
+    "conjugations": [
+      "Jestem",
+      "Jesteś",
+      "Jesteśmy",
+      "Jesteście",
+      "Jest",
+      "Są"
+    ]
+  },
+  {
+    "word": "Mieć",
+    "translation": "Have",
+    "category": "Verbs",
+    "conjugations": [
+      "Mam",
+      "Masz",
+      "Mamy",
+      "Macie",
+      "Ma",
+      "Mają"
+    ]
+  },
+  {
+    "word": "Robić",
+    "translation": "Do",
+    "category": "Verbs",
+    "conjugations": [
+      "Robię",
+      "Robisz",
+      "Robimy",
+      "Robicię",
+      "Robi",
+      "Robią"
+    ]
+  },
+  {
+    "word": "Mówić",
+    "translation": "Say",
+    "category": "Verbs",
+    "conjugations": [
+      "Mówię",
+      "Mówisz",
+      "Mówimy",
+      "Mówicię",
+      "Mówi",
+      "Mówią"
+    ]
+  },
+  {
+    "word": "Iść",
+    "translation": "Go",
+    "category": "Verbs",
+    "conjugations": [
+      "Idę",
+      "Idzesz",
+      "Idziemy",
+      "Idziecię",
+      "Idzie",
+      "Idą"
+    ]
+  },
+  {
+    "word": "Wiedzieć",
+    "translation": "Know",
+    "category": "Verbs",
+    "conjugations": [
+      "Wiem",
+      "Wiesz",
+      "Wiemy",
+      "Wiecię",
+      "Wię",
+      "Wiedzą"
+    ]
+  },
+  {
+    "word": "Chcieć",
+    "translation": "Want",
+    "category": "Verbs",
+    "conjugations": [
+      "Chcę",
+      "Chcesz",
+      "Chcemy",
+      "Chcecię",
+      "Chce",
+      "Chcą"
+    ]
+  },
+  {
+    "word": "Widzeć",
+    "translation": "See",
+    "category": "Verbs",
+    "conjugations": [
+      "Widzę",
+      "Widzisz",
+      "Widzimy",
+      "Widzicię",
+      "Widzi",
+      "Widzą"
+    ]
+  },
+  {
+    "word": "Jeść",
+    "translation": "Eat",
+    "category": "Verbs",
+    "conjugations": [
+      "Jem",
+      "Jesz",
+      "Jemy",
+      "Jecię",
+      "Je",
+      "Jedzą"
+    ]
+  },
+  {
+    "word": "Pić",
+    "translation": "Drink",
+    "category": "Verbs",
+    "conjugations": [
+      "Piję",
+      "Pijesz",
+      "Pijemy",
+      "Pijecię",
+      "Pije",
+      "Piją"
+    ]
+  }
+]
