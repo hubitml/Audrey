@@ -651,18 +651,20 @@
 
     <!-- ===== SETUP SCREEN ===== -->
     <div class="hidden card" id="screen-setup">
-      <label class="field-label">Categories</label>
-      <div class="cat-toggle" id="category-toggle">
-        <span id="category-summary">All categories</span>
-        <span class="chev">▾</span>
-      </div>
-      <div id="category-options"></div>
-      <div id="category-warning" class="setup-warning"></div>
-
       <label class="field-label">Mode</label>
       <div class="mode-row" id="mode-row">
         <div class="mode-btn active" data-mode="mc">Multiple Choice</div>
         <div class="mode-btn" data-mode="verbs">Verbs</div>
+      </div>
+
+      <div id="category-section">
+        <label class="field-label">Categories</label>
+        <div class="cat-toggle" id="category-toggle">
+          <span id="category-summary">All categories</span>
+          <span class="chev">▾</span>
+        </div>
+        <div id="category-options"></div>
+        <div id="category-warning" class="setup-warning"></div>
       </div>
 
       <label class="field-label">MC Type</label>
@@ -1170,6 +1172,10 @@
       },
 
       getActivePool() {
+        // If Verbs mode, only use verbs category
+        if (State.settings.mode === 'verbs') {
+          return State.allWords.filter(w => w.category === 'verbs' && w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
+        }
         return State.allWords.filter(w => State.settings.categories.includes(w.category));
       },
 
@@ -1424,6 +1430,7 @@
 
       quit() {
         const mc = State.mc;
+        // Save progress before ending
         Game.end(mc.score, mc.totalAttempts);
       }
     };
@@ -1796,6 +1803,7 @@
 
       quit() {
         const v = State.verbs;
+        // Save progress before ending
         Game.end(v.score, v.totalAttempts);
       }
     };
@@ -1938,15 +1946,37 @@
     // ================================================================
     const Setup = {
       init() {
+        // Category toggle
         $('category-toggle').addEventListener('click', () => {
           $('category-options').classList.toggle('hidden');
         });
 
+        // Mode selection
         $$('#mode-row .mode-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             $$('#mode-row .mode-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             State.settings.mode = btn.dataset.mode;
+            
+            // Show/hide category section based on mode
+            const categorySection = $('category-section');
+            if (State.settings.mode === 'verbs') {
+              categorySection.style.display = 'none';
+              // Force categories to ['verbs'] for verbs mode
+              State.settings.categories = ['verbs'];
+              $('category-summary').textContent = 'Verbs only';
+              // Hide category warning
+              $('category-warning').textContent = '';
+              $('category-warning').style.display = 'none';
+            } else {
+              categorySection.style.display = 'block';
+              // Restore categories from checkboxes
+              const checked = [...document.querySelectorAll('.cat-checkbox:checked')].map(c => c.value);
+              State.settings.categories = checked.length > 0 ? checked : ['verbs'];
+              WordManager.updateSummary();
+            }
+
+            // Hide category MC type for verbs
             const catBtn = document.querySelector('.mc-type-btn[data-mctype="category"]');
             if (State.settings.mode === 'verbs') {
               catBtn.style.display = 'none';
@@ -1986,10 +2016,15 @@
           return;
         }
 
-        if (State.settings.categories.length === 0) {
+        if (State.settings.mode === 'mc' && State.settings.categories.length === 0) {
           $('setup-status').textContent = 'Select at least one category.';
           $('setup-status').className = 'status-msg error';
           return;
+        }
+
+        if (State.settings.mode === 'verbs') {
+          // Force categories to ['verbs'] for verbs mode
+          State.settings.categories = ['verbs'];
         }
 
         if (State.settings.mode === 'verbs' && State.settings.mcType === 'category') {
