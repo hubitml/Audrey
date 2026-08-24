@@ -218,5 +218,55 @@
     "word": "Brązowy",
     "translation": "Brown",
     "category": "Colors"
+  },
+  {
+    "word": "Kochać",
+    "translation": "Love",
+    "category": "Verbs"
+  },
+  {
+    "word": "Móc",
+    "translation": "Can / Be Able",
+    "category": "Verbs"
+  },
+  {
+    "word": "Myśleć",
+    "translation": "Think",
+    "category": "Verbs"
+  },
+  {
+    "word": "Stać",
+    "translation": "Stand",
+    "category": "Verbs"
+  },
+  {
+    "word": "Siedzieć",
+    "translation": "Sit",
+    "category": "Verbs"
+  },
+  {
+    "word": "Leżeć",
+    "translation": "Lie [position]",
+    "category": "Verbs"
+  },
+  {
+    "word": "Pracować",
+    "translation": "Work",
+    "category": "Verbs"
+  },
+  {
+    "word": "Kupować",
+    "translation": "Buy",
+    "category": "Verbs"
+  },
+  {
+    "word": "Tłumaczyć",
+    "translation": "Explain/Translate",
+    "category": "Verbs"
+  },
+  {
+    "word": "Myć",
+    "translation": "Wash",
+    "category": "Verbs"
   }
 ]
