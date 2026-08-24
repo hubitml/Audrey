@@ -851,6 +851,7 @@
 
       matching: {
         pairs: [],
+        shuffledRight: [],
         onComplete: null,
         onHeartLost: null,
         selectedLeft: null,
@@ -1440,7 +1441,7 @@
     };
 
     // ================================================================
-    //  MATCHING ENGINE
+    //  MATCHING ENGINE - FIXED
     // ================================================================
     const MatchingEngine = {
       start(pairs, onComplete, onHeartLost) {
@@ -1453,6 +1454,9 @@
         m.matchedCount = 0;
         m.correctCount = 0;
         m.isLocked = false;
+        
+        // Shuffle right column ONCE at the start
+        m.shuffledRight = Utils.shuffle(m.pairs.map(p => p.id));
 
         UI.show('match');
         $('match-count').textContent = 'Conjugate: ';
@@ -1461,7 +1465,7 @@
         this.render();
       },
 
-      async render() {
+      render() {
         const m = State.matching;
         const leftCol = $('match-left');
         const rightCol = $('match-right');
@@ -1476,7 +1480,6 @@
           if (p.status === 'correct') cls += ' matched-correct';
           else if (p.status === 'failed') cls += ' matched-failed';
           div.className = cls;
-          // No speaker for pronouns
           div.textContent = p.left;
           div.dataset.id = p.id;
           div.dataset.side = 'left';
@@ -1488,15 +1491,14 @@
           leftCol.appendChild(div);
         }
 
-        // Right column: shuffled, show all
-        const rightPairs = Utils.shuffle(m.pairs);
-        for (const p of rightPairs) {
+        // Right column: use pre-shuffled order
+        for (const id of m.shuffledRight) {
+          const p = m.pairs.find(pair => pair.id === id);
           const div = document.createElement('div');
           let cls = 'match-item';
           if (p.status === 'correct') cls += ' matched-correct';
           else if (p.status === 'failed') cls += ' matched-failed';
           div.className = cls;
-          // No speaker for conjugations
           div.textContent = p.right;
           div.dataset.id = p.id;
           div.dataset.side = 'right';
@@ -1591,11 +1593,33 @@
           $('match-status').className = 'status-msg success';
           m.selectedLeft.node.classList.remove('selected');
           m.selectedRight.node.classList.remove('selected');
+          
+          // Update just these two items
+          m.selectedLeft.node.className = 'match-item matched-correct';
+          m.selectedLeft.node.style.cursor = 'default';
+          m.selectedRight.node.className = 'match-item matched-correct';
+          m.selectedRight.node.style.cursor = 'default';
+          
           m.selectedLeft = null;
           m.selectedRight = null;
           m.isLocked = false;
-          this.render();
+          
+          // Update score
+          const total = m.pairs.length;
+          $('match-score').textContent = 'Correct: ' + m.correctCount + '/' + total;
+          
+          // Check if all done
+          const done = m.pairs.filter(p => p.status !== 'unmatched').length;
+          if (done === total) {
+            $('match-status').textContent = '✅ All matched!';
+            setTimeout(() => {
+              if (m.onComplete) {
+                m.onComplete({ correct: m.correctCount, total: total });
+              }
+            }, 500);
+          }
         } else {
+          // Wrong match – mark both as failed
           leftPair.status = 'failed';
           rightPair.status = 'failed';
           m.matchedCount++;
@@ -1608,16 +1632,26 @@
           }
           $('match-status').textContent = '❌ Wrong match!';
           $('match-status').className = 'status-msg error';
-          m.selectedLeft.node.classList.add('wrong-flash');
-          m.selectedRight.node.classList.add('wrong-flash');
+          
+          m.selectedLeft.node.classList.remove('selected');
+          m.selectedRight.node.classList.remove('selected');
+          m.selectedLeft.node.className = 'match-item matched-failed';
+          m.selectedRight.node.className = 'match-item matched-failed';
+          m.selectedLeft.node.style.cursor = 'default';
+          m.selectedRight.node.style.cursor = 'default';
+          
+          // Remove click listeners by cloning
+          const leftClone = m.selectedLeft.node.cloneNode(true);
+          m.selectedLeft.node.parentNode.replaceChild(leftClone, m.selectedLeft.node);
+          const rightClone = m.selectedRight.node.cloneNode(true);
+          m.selectedRight.node.parentNode.replaceChild(rightClone, m.selectedRight.node);
+          
+          m.selectedLeft = null;
+          m.selectedRight = null;
+          m.isLocked = false;
+          
           setTimeout(() => {
-            m.selectedLeft.node.classList.remove('selected', 'wrong-flash');
-            m.selectedRight.node.classList.remove('selected', 'wrong-flash');
-            m.selectedLeft = null;
-            m.selectedRight = null;
-            m.isLocked = false;
             $('match-status').className = 'status-msg';
-            this.render();
           }, 500);
         }
       }
