@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
+  /* ---------- same as before, with a few additions ---------- */
   :root{
     --ink:#1B2430;
     --surface:#232E3D;
@@ -61,8 +62,9 @@
   }
   select{ appearance:none; -webkit-appearance:none; cursor:pointer; }
   textarea{ font-family:'IBM Plex Mono',monospace; font-size:13px; min-height:90px; resize:vertical; }
-  .row{ display:flex; gap:8px; }
-  .row > div{ flex:1; }
+  .row{ display:flex; gap:8px; align-items:center; }
+  .row > *{ flex:1; }
+  .row .label-fixed{ flex:0 0 60px; font-size:13px; color:var(--paper-dim); }
   button{
     font-family:'Inter',sans-serif;
     font-weight:600;
@@ -90,13 +92,22 @@
     border-bottom:1px solid var(--surface-2);
   }
   td{ padding:8px 6px; border-bottom:1px solid var(--surface-2); vertical-align:middle; }
-  td input{ padding:8px; font-size:13px; }
+  td input{ padding:8px; font-size:13px; width:100%; }
   .del-btn{
     background:transparent;
     color:var(--rust);
     border:1px solid var(--rust);
     padding:6px 10px;
     font-size:12px;
+  }
+  .edit-conj-btn{
+    background:transparent;
+    color:var(--amber);
+    border:1px solid var(--amber);
+    padding:4px 8px;
+    font-size:11px;
+    border-radius:6px;
+    cursor:pointer;
   }
   .count-tag{
     font-family:'IBM Plex Mono',monospace;
@@ -134,7 +145,7 @@
     margin-top:6px;
   }
 
-  /* Voice Manager */
+  /* ---------- Voice manager (unchanged) ---------- */
   .voice-item{
     display:flex;
     justify-content:space-between;
@@ -201,6 +212,29 @@
   .voice-select-row{ display:flex; gap:8px; margin-bottom:10px; }
   .voice-select-row select{ flex:3; }
   .voice-select-row button{ flex:1; min-width:80px; }
+
+  /* ---------- Conjugation modal (overlay) ---------- */
+  .modal-overlay{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.6);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+  }
+  .modal-box{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:24px;
+    max-width:420px;
+    width:90%;
+  }
+  .modal-box h3{margin-top:0; font-family:'Fraunces',serif;}
+  .modal-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .modal-row .pronoun{ width:80px; font-size:14px; color:var(--paper-dim); }
+  .modal-row input{ flex:1; }
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
 </style>
 </head>
 <body>
@@ -212,7 +246,7 @@
   <!-- ===== GITHUB ===== -->
   <div class="card">
     <label class="field-label">GitHub</label>
-    <div class="sub" style="margin-bottom:6px;">hubitml/Audrey — words.json on main</div>
+    <div class="sub" style="margin-bottom:6px;">hubitml/Audrey — words.json &amp; verbs.json on main</div>
     <div class="token-row">
       <input id="github-token" type="password" placeholder="GitHub token">
       <button class="btn-secondary" id="token-save-btn">Save</button>
@@ -240,6 +274,24 @@ Pieprz
 Pepper
 Kurczak
 Chicken">Topic: </textarea>
+
+    <!-- Mode toggle (replaces the old buttons) -->
+    <div class="row" style="margin-bottom:10px; margin-top:6px;">
+      <button class="btn-secondary active" id="mode-word-btn">📝 Words</button>
+      <button class="btn-secondary" id="mode-verb-btn">🔤 Verbs</button>
+    </div>
+
+    <!-- Conjugation fields (hidden by default) -->
+    <div id="conjugation-fields" style="display:none; margin-top:8px;">
+      <label class="field-label">Conjugations (6 forms)</label>
+      <div class="row"><span class="label-fixed">ja</span><input id="conj-ja" placeholder="jestem"></div>
+      <div class="row"><span class="label-fixed">ty</span><input id="conj-ty" placeholder="jesteś"></div>
+      <div class="row"><span class="label-fixed">my</span><input id="conj-my" placeholder="jesteśmy"></div>
+      <div class="row"><span class="label-fixed">wy</span><input id="conj-wy" placeholder="jesteście"></div>
+      <div class="row"><span class="label-fixed">on/ona/ono</span><input id="conj-on" placeholder="jest"></div>
+      <div class="row"><span class="label-fixed">oni</span><input id="conj-oni" placeholder="są"></div>
+    </div>
+
     <div class="btn-row">
       <button class="btn-primary" id="table-import-btn">Add from paste</button>
       <button class="btn-secondary" id="table-replace-btn">Replace all</button>
@@ -298,9 +350,22 @@ Chicken">Topic: </textarea>
   <div class="card">
     <div class="count-tag" id="word-count">0 words</div>
     <table>
-      <thead><tr><th>Word</th><th>Translation</th><th>Category</th><th></th></tr></thead>
+      <thead><tr><th>Word</th><th>Translation</th><th>Category</th><th>Conjugations</th><th></th></tr></thead>
       <tbody id="word-table-body"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL for editing conjugations (hidden by default) -->
+<div id="conj-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h3>Edit Conjugations</h3>
+    <div id="modal-conj-list"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+      <button class="btn-primary" id="modal-save-btn">Save</button>
+    </div>
   </div>
 </div>
 
@@ -313,28 +378,35 @@ const Utils = {
   escapeAttr: (s) => String(s || '').replace(/"/g, '&quot;'),
   capitalize: (s) => s.charAt(0).toUpperCase() + s.slice(1)
 };
+const PRONOUNS = ["ja", "ty", "my", "wy", "on/ona/ono", "oni"];
 
 const el = id => document.getElementById(id);
 
 // ================================================================
 //  WORD MANAGER
 // ================================================================
-let words = [];
+let words = []; // all words (including verbs with conjugations)
+let currentMode = 'word'; // 'word' or 'verb'
 
 function refreshTable(){
   const body = el('word-table-body');
   body.innerHTML = '';
   words.forEach((w, i) => {
     const tr = document.createElement('tr');
+    // Check if it's a verb (has conjugations)
+    const isVerb = w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6;
+    const conjDisplay = isVerb ? `🔤 <button class="edit-conj-btn" data-i="${i}">✏️</button>` : '';
     tr.innerHTML = `
       <td><input data-i="${i}" data-field="word" value="${Utils.escapeAttr(w.word)}"></td>
       <td><input data-i="${i}" data-field="translation" value="${Utils.escapeAttr(w.translation)}"></td>
       <td><input data-i="${i}" data-field="category" value="${Utils.escapeAttr(w.category)}"></td>
+      <td style="text-align:center;">${conjDisplay}</td>
       <td><button class="del-btn" data-i="${i}">Delete</button></td>
     `;
     body.appendChild(tr);
   });
-  body.querySelectorAll('input').forEach(inp => {
+  // Bind inline edits
+  body.querySelectorAll('input[data-i]').forEach(inp => {
     inp.addEventListener('input', e => {
       const i = e.target.dataset.i, field = e.target.dataset.field;
       words[i][field] = e.target.value;
@@ -343,12 +415,20 @@ function refreshTable(){
       updateVoiceCount();
     });
   });
+  // Delete buttons
   body.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       words.splice(e.target.dataset.i, 1);
       refreshTable();
       populateWordSelect();
       updateVoiceCount();
+    });
+  });
+  // Edit conjugation buttons
+  body.querySelectorAll('.edit-conj-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.target.dataset.i, 10);
+      openConjModal(idx);
     });
   });
   el('word-count').textContent = words.length + ' word' + (words.length === 1 ? '' : 's');
@@ -361,94 +441,112 @@ function refreshCategoryList(){
 }
 
 // ================================================================
-//  GITHUB
+//  CONJUGATION MODAL
 // ================================================================
-const GH_OWNER = 'hubitml';
-const GH_REPO = 'Audrey';
-const GH_BRANCH = 'main';
-const GH_PATH = 'words.json';
-const GH_TOKEN_KEY = 'wordDrillsGithubToken';
-let currentFileSha = null;
+let modalIndex = -1;
 
-function getToken(){ return localStorage.getItem(GH_TOKEN_KEY) || ''; }
-function setToken(token){ localStorage.setItem(GH_TOKEN_KEY, token); updateTokenSavedTag(); }
-function clearToken(){ localStorage.removeItem(GH_TOKEN_KEY); el('github-token').value = ''; updateTokenSavedTag(); }
-function updateTokenSavedTag(){
-  el('token-saved-tag').textContent = getToken() ? '✓ Token saved' : 'No token saved';
+function openConjModal(idx){
+  const w = words[idx];
+  if (!w) return;
+  // Ensure conjugations array exists
+  if (!w.conjugations || !Array.isArray(w.conjugations) || w.conjugations.length !== 6) {
+    w.conjugations = ['', '', '', '', '', ''];
+  }
+  modalIndex = idx;
+  const container = el('modal-conj-list');
+  container.innerHTML = '';
+  PRONOUNS.forEach((pronoun, i) => {
+    const div = document.createElement('div');
+    div.className = 'modal-row';
+    div.innerHTML = `
+      <span class="pronoun">${pronoun}</span>
+      <input type="text" id="modal-conj-${i}" value="${Utils.escapeAttr(w.conjugations[i] || '')}" placeholder="conjugation">
+    `;
+    container.appendChild(div);
+  });
+  el('conj-modal').style.display = 'flex';
 }
 
-el('token-save-btn').addEventListener('click', () => {
-  const val = el('github-token').value.trim();
-  if (!val){ el('github-status').textContent = 'Enter a token.'; el('github-status').className = 'status error'; return; }
-  setToken(val);
-  el('github-token').value = '';
-  el('github-status').textContent = 'Token saved.';
-  el('github-status').className = 'status';
+el('modal-cancel-btn').addEventListener('click', () => {
+  el('conj-modal').style.display = 'none';
 });
 
-el('token-clear-btn').addEventListener('click', () => {
-  clearToken();
-  el('github-status').textContent = 'Token cleared.';
-  el('github-status').className = 'status';
-});
-
-el('github-load-btn').addEventListener('click', async () => {
-  const status = el('github-status');
-  const token = getToken();
-  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
-  status.textContent = 'Loading…';
-  status.className = 'status';
-  try {
-    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
-    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' } });
-    if (!res.ok) throw new Error(`GitHub ${res.status}: ${res.statusText}`);
-    const data = await res.json();
-    currentFileSha = data.sha;
-    const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-    words = JSON.parse(decoded);
-    refreshTable();
-    populateWordSelect();
-    updateVoiceCount();
-    status.textContent = `Loaded ${words.length} words.`;
-    status.className = 'status';
-  } catch (err) {
-    status.textContent = 'Load failed: ' + err.message;
-    status.className = 'status error';
+el('modal-save-btn').addEventListener('click', () => {
+  if (modalIndex < 0 || modalIndex >= words.length) return;
+  const w = words[modalIndex];
+  const newConj = PRONOUNS.map((_, i) => el(`modal-conj-${i}`).value.trim());
+  if (newConj.some(c => c === '')) {
+    el('table-status').textContent = 'All 6 conjugations must be filled.';
+    el('table-status').className = 'status error';
+    return;
   }
+  w.conjugations = newConj;
+  el('conj-modal').style.display = 'none';
+  refreshTable();
+  populateWordSelect();
+  updateVoiceCount();
+  el('table-status').textContent = 'Conjugations updated.';
+  el('table-status').className = 'status success';
 });
 
-el('github-save-btn').addEventListener('click', async () => {
-  const status = el('github-status');
-  const token = getToken();
-  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
-  status.textContent = 'Saving…';
-  status.className = 'status';
-  try {
-    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
-    const shaRes = await fetch(`${url}?ref=${GH_BRANCH}`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if (shaRes.ok){ const shaData = await shaRes.json(); currentFileSha = shaData.sha; }
+// ================================================================
+//  MODE TOGGLE
+// ================================================================
+el('mode-word-btn').addEventListener('click', () => {
+  currentMode = 'word';
+  el('mode-word-btn').classList.add('active');
+  el('mode-verb-btn').classList.remove('active');
+  el('conjugation-fields').style.display = 'none';
+});
+el('mode-verb-btn').addEventListener('click', () => {
+  currentMode = 'verb';
+  el('mode-verb-btn').classList.add('active');
+  el('mode-word-btn').classList.remove('active');
+  el('conjugation-fields').style.display = 'block';
+});
 
-    const jsonStr = JSON.stringify(words, null, 2);
-    const contentB64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const body = { message: `Update words.json (${words.length} words)`, content: contentB64, branch: GH_BRANCH };
-    if (currentFileSha) body.sha = currentFileSha;
-
-    const putRes = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!putRes.ok){ const errData = await putRes.json().catch(() => ({})); throw new Error(`GitHub ${putRes.status}: ${errData.message || putRes.statusText}`); }
-    const putData = await putRes.json();
-    currentFileSha = putData.content.sha;
-    status.textContent = `Saved ${words.length} words.`;
-    status.className = 'status';
-  } catch (err) {
-    status.textContent = 'Save failed: ' + err.message;
-    status.className = 'status error';
+// ================================================================
+//  ADD SINGLE WORD
+// ================================================================
+el('add-btn').addEventListener('click', () => {
+  const word = el('new-word').value.trim();
+  const translation = el('new-translation').value.trim();
+  const category = el('new-category').value.trim() || 'uncategorized';
+  if (!word || !translation) {
+    el('table-status').textContent = 'Word and translation required.';
+    el('table-status').className = 'status error';
+    return;
   }
+  const newWord = { word, translation, category };
+  if (currentMode === 'verb') {
+    const conj = [
+      el('conj-ja').value.trim(),
+      el('conj-ty').value.trim(),
+      el('conj-my').value.trim(),
+      el('conj-wy').value.trim(),
+      el('conj-on').value.trim(),
+      el('conj-oni').value.trim()
+    ];
+    if (conj.some(c => c === '')) {
+      el('table-status').textContent = 'All 6 conjugations required.';
+      el('table-status').className = 'status error';
+      return;
+    }
+    newWord.conjugations = conj;
+  }
+  words.push(newWord);
+  // clear fields
+  el('new-word').value = '';
+  el('new-translation').value = '';
+  el('new-category').value = '';
+  if (currentMode === 'verb') {
+    document.querySelectorAll('#conjugation-fields input').forEach(inp => inp.value = '');
+  }
+  refreshTable();
+  populateWordSelect();
+  updateVoiceCount();
+  el('table-status').textContent = `Added ${newWord.word}`;
+  el('table-status').className = 'status success';
 });
 
 // ================================================================
@@ -490,45 +588,157 @@ function parseTable(text){
 
 el('table-import-btn').addEventListener('click', () => {
   const parsed = parseTable(el('table-input').value);
-  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
+  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; el('table-status').className = 'status error'; return; }
   words = words.concat(parsed);
   refreshTable();
   populateWordSelect();
   updateVoiceCount();
   el('table-status').textContent = 'Added ' + parsed.length + ' words.';
+  el('table-status').className = 'status success';
   el('table-input').value = 'Topic: ';
 });
 
 el('table-replace-btn').addEventListener('click', () => {
   const parsed = parseTable(el('table-input').value);
-  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; return; }
+  if (parsed.length === 0){ el('table-status').textContent = 'No words found.'; el('table-status').className = 'status error'; return; }
   words = parsed;
   refreshTable();
   populateWordSelect();
   updateVoiceCount();
   el('table-status').textContent = 'Replaced with ' + parsed.length + ' words.';
+  el('table-status').className = 'status success';
   el('table-input').value = 'Topic: ';
 });
 
 // ================================================================
-//  SINGLE WORD
+//  GITHUB - LOAD & SAVE (split into words.json and verbs.json)
 // ================================================================
-el('add-btn').addEventListener('click', () => {
-  const word = el('new-word').value.trim();
-  const translation = el('new-translation').value.trim();
-  const category = el('new-category').value.trim() || 'uncategorized';
-  if (!word || !translation) return;
-  words.push({ word, translation, category });
-  el('new-word').value = '';
-  el('new-translation').value = '';
-  el('new-category').value = '';
-  refreshTable();
-  populateWordSelect();
-  updateVoiceCount();
+const GH_OWNER = 'hubitml';
+const GH_REPO = 'Audrey';
+const GH_BRANCH = 'main';
+const GH_TOKEN_KEY = 'wordDrillsGithubToken';
+let currentFileShaWords = null;
+let currentFileShaVerbs = null;
+
+function getToken(){ return localStorage.getItem(GH_TOKEN_KEY) || ''; }
+function setToken(token){ localStorage.setItem(GH_TOKEN_KEY, token); updateTokenSavedTag(); }
+function clearToken(){ localStorage.removeItem(GH_TOKEN_KEY); el('github-token').value = ''; updateTokenSavedTag(); }
+function updateTokenSavedTag(){
+  el('token-saved-tag').textContent = getToken() ? '✓ Token saved' : 'No token saved';
+}
+
+el('token-save-btn').addEventListener('click', () => {
+  const val = el('github-token').value.trim();
+  if (!val){ el('github-status').textContent = 'Enter a token.'; el('github-status').className = 'status error'; return; }
+  setToken(val);
+  el('github-token').value = '';
+  el('github-status').textContent = 'Token saved.';
+  el('github-status').className = 'status';
+});
+
+el('token-clear-btn').addEventListener('click', () => {
+  clearToken();
+  el('github-status').textContent = 'Token cleared.';
+  el('github-status').className = 'status';
+});
+
+// Helper: fetch file sha
+async function fetchFileSha(token, path){
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' } });
+  if (res.ok){ const data = await res.json(); return data.sha; }
+  return null;
+}
+
+// Helper: save single file
+async function saveFile(token, path, content, sha){
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`;
+  const jsonStr = JSON.stringify(content, null, 2);
+  const contentB64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const body = { message: `Update ${path} (${content.length} entries)`, content: contentB64, branch: GH_BRANCH };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok){ const errData = await res.json().catch(() => ({})); throw new Error(`GitHub ${res.status}: ${errData.message || res.statusText}`); }
+  const data = await res.json();
+  return data.content.sha;
+}
+
+el('github-load-btn').addEventListener('click', async () => {
+  const status = el('github-status');
+  const token = getToken();
+  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
+  status.textContent = 'Loading…';
+  status.className = 'status';
+  try {
+    // Load words.json
+    const wordsRes = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/words.json?ref=${GH_BRANCH}`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    let loadedWords = [];
+    if (wordsRes.ok){
+      const data = await wordsRes.json();
+      currentFileShaWords = data.sha;
+      const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+      loadedWords = JSON.parse(decoded);
+    }
+    // Load verbs.json
+    let loadedVerbs = [];
+    const verbsRes = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/verbs.json?ref=${GH_BRANCH}`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (verbsRes.ok){
+      const data = await verbsRes.json();
+      currentFileShaVerbs = data.sha;
+      const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+      loadedVerbs = JSON.parse(decoded);
+    }
+    words = [...loadedWords, ...loadedVerbs];
+    refreshTable();
+    populateWordSelect();
+    updateVoiceCount();
+    status.textContent = `Loaded ${words.length} words (${loadedWords.length} words, ${loadedVerbs.length} verbs).`;
+    status.className = 'status';
+  } catch (err) {
+    status.textContent = 'Load failed: ' + err.message;
+    status.className = 'status error';
+  }
+});
+
+el('github-save-btn').addEventListener('click', async () => {
+  const status = el('github-status');
+  const token = getToken();
+  if (!token){ status.textContent = 'Save a GitHub token first.'; status.className = 'status error'; return; }
+  status.textContent = 'Saving…';
+  status.className = 'status';
+  try {
+    // Split words: without conjugations vs with conjugations
+    const wordsOnly = words.filter(w => !w.conjugations || !Array.isArray(w.conjugations) || w.conjugations.length !== 6);
+    const verbsOnly = words.filter(w => w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
+
+    // Save words.json
+    const shaWords = await fetchFileSha(token, 'words.json');
+    const newShaWords = await saveFile(token, 'words.json', wordsOnly, shaWords);
+    currentFileShaWords = newShaWords;
+
+    // Save verbs.json
+    const shaVerbs = await fetchFileSha(token, 'verbs.json');
+    const newShaVerbs = await saveFile(token, 'verbs.json', verbsOnly, shaVerbs);
+    currentFileShaVerbs = newShaVerbs;
+
+    status.textContent = `Saved ${wordsOnly.length} words and ${verbsOnly.length} verbs.`;
+    status.className = 'status';
+  } catch (err) {
+    status.textContent = 'Save failed: ' + err.message;
+    status.className = 'status error';
+  }
 });
 
 // ================================================================
-//  VOICE MANAGER - IndexedDB
+//  VOICE MANAGER (unchanged – same as before)
 // ================================================================
 const VoiceManager = {
   dbName: 'WordDrillsVoices',
@@ -670,7 +880,7 @@ const VoiceManager = {
 };
 
 // ================================================================
-//  VOICE UI - REDESIGNED
+//  VOICE UI - (unchanged)
 // ================================================================
 let voiceRecordings = [];
 let voiceIsRecording = false;
