@@ -33,7 +33,7 @@
       "Robię",
       "Robisz",
       "Robimy",
-      "Robicię",
+      "Robicie",
       "Robi",
       "Robią"
     ]
@@ -46,7 +46,7 @@
       "Mówię",
       "Mówisz",
       "Mówimy",
-      "Mówicię",
+      "Mówicie",
       "Mówi",
       "Mówią"
     ]
@@ -57,9 +57,9 @@
     "category": "Verbs",
     "conjugations": [
       "Idę",
-      "Idzesz",
+      "Idziesz",
       "Idziemy",
-      "Idziecię",
+      "Idziecie",
       "Idzie",
       "Idą"
     ]
@@ -72,7 +72,7 @@
       "Wiem",
       "Wiesz",
       "Wiemy",
-      "Wiecię",
+      "Wiecie",
       "Wię",
       "Wiedzą"
     ]
@@ -85,20 +85,20 @@
       "Chcę",
       "Chcesz",
       "Chcemy",
-      "Chcecię",
+      "Chcecie",
       "Chce",
       "Chcą"
     ]
   },
   {
-    "word": "Widzeć",
+    "word": "Widzieć",
     "translation": "See",
     "category": "Verbs",
     "conjugations": [
       "Widzę",
       "Widzisz",
       "Widzimy",
-      "Widzicię",
+      "Widzicie",
       "Widzi",
       "Widzą"
     ]
@@ -111,7 +111,7 @@
       "Jem",
       "Jesz",
       "Jemy",
-      "Jecię",
+      "Jecie",
       "Je",
       "Jedzą"
     ]
@@ -124,7 +124,7 @@
       "Piję",
       "Pijesz",
       "Pijemy",
-      "Pijecię",
+      "Pijecie",
       "Pije",
       "Piją"
     ]
@@ -137,7 +137,7 @@
       "Kocham",
       "Kochasz",
       "Kochamy",
-      "Kochacię",
+      "Kochacie",
       "Kocha",
       "Kochają"
     ]
@@ -163,7 +163,7 @@
       "Myślę",
       "Myślisz",
       "Myślimy",
-      "Myślicię",
+      "Myślicie",
       "Myśli",
       "Myślą"
     ]
@@ -176,8 +176,8 @@
       "Stoję",
       "Stojisz",
       "Stojimy",
-      "Stojicię",
-      "Stoji",
+      "Stojicie",
+      "Stoi",
       "Stoją"
     ]
   },
@@ -202,7 +202,7 @@
       "Leżę",
       "Leżysz",
       "Leżymy",
-      "Leżycię",
+      "Leżycie",
       "Leży",
       "Leżą"
     ]
@@ -228,7 +228,7 @@
       "Kupuję",
       "Kupujesz",
       "Kupujemy",
-      "Kupujemy",
+      "Kupujecie",
       "Kupuje",
       "Kupują"
     ]
@@ -241,7 +241,7 @@
       "Tłumaczę",
       "Tłumaczysz",
       "Tłumaczymy",
-      "Tłumaczycię",
+      "Tłumaczycie",
       "Tłumaczy",
       "Tłumaczą"
     ]
@@ -254,7 +254,7 @@
       "Myję",
       "Myjesz",
       "Myjemy",
-      "Myjecię",
+      "Myjecie",
       "Myje",
       "Myją"
     ]
