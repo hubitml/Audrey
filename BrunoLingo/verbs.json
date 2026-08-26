@@ -1,0 +1,262 @@
+[
+  {
+    "word": "Być",
+    "translation": "Be",
+    "category": "Verbs",
+    "conjugations": [
+      "Jestem",
+      "Jesteś",
+      "Jesteśmy",
+      "Jesteście",
+      "Jest",
+      "Są"
+    ]
+  },
+  {
+    "word": "Mieć",
+    "translation": "Have",
+    "category": "Verbs",
+    "conjugations": [
+      "Mam",
+      "Masz",
+      "Mamy",
+      "Macie",
+      "Ma",
+      "Mają"
+    ]
+  },
+  {
+    "word": "Robić",
+    "translation": "Do",
+    "category": "Verbs",
+    "conjugations": [
+      "Robię",
+      "Robisz",
+      "Robimy",
+      "Robicie",
+      "Robi",
+      "Robią"
+    ]
+  },
+  {
+    "word": "Mówić",
+    "translation": "Say",
+    "category": "Verbs",
+    "conjugations": [
+      "Mówię",
+      "Mówisz",
+      "Mówimy",
+      "Mówicie",
+      "Mówi",
+      "Mówią"
+    ]
+  },
+  {
+    "word": "Iść",
+    "translation": "Go",
+    "category": "Verbs",
+    "conjugations": [
+      "Idę",
+      "Idziesz",
+      "Idziemy",
+      "Idziecie",
+      "Idzie",
+      "Idą"
+    ]
+  },
+  {
+    "word": "Wiedzieć",
+    "translation": "Know",
+    "category": "Verbs",
+    "conjugations": [
+      "Wiem",
+      "Wiesz",
+      "Wiemy",
+      "Wiecie",
+      "Wie",
+      "Wiedzą"
+    ]
+  },
+  {
+    "word": "Chcieć",
+    "translation": "Want",
+    "category": "Verbs",
+    "conjugations": [
+      "Chcę",
+      "Chcesz",
+      "Chcemy",
+      "Chcecie",
+      "Chce",
+      "Chcą"
+    ]
+  },
+  {
+    "word": "Widzieć",
+    "translation": "See",
+    "category": "Verbs",
+    "conjugations": [
+      "Widzę",
+      "Widzisz",
+      "Widzimy",
+      "Widzicie",
+      "Widzi",
+      "Widzą"
+    ]
+  },
+  {
+    "word": "Jeść",
+    "translation": "Eat",
+    "category": "Verbs",
+    "conjugations": [
+      "Jem",
+      "Jesz",
+      "Jemy",
+      "Jecie",
+      "Je",
+      "Jedzą"
+    ]
+  },
+  {
+    "word": "Pić",
+    "translation": "Drink",
+    "category": "Verbs",
+    "conjugations": [
+      "Piję",
+      "Pijesz",
+      "Pijemy",
+      "Pijecie",
+      "Pije",
+      "Piją"
+    ]
+  },
+  {
+    "word": "Kochać",
+    "translation": "Love",
+    "category": "Verbs",
+    "conjugations": [
+      "Kocham",
+      "Kochasz",
+      "Kochamy",
+      "Kochacie",
+      "Kocha",
+      "Kochają"
+    ]
+  },
+  {
+    "word": "Móc",
+    "translation": "Can / Be Able",
+    "category": "Verbs",
+    "conjugations": [
+      "Mogę",
+      "Możesz",
+      "Możemy",
+      "Możecie",
+      "Może",
+      "Mogą"
+    ]
+  },
+  {
+    "word": "Myśleć",
+    "translation": "Think",
+    "category": "Verbs",
+    "conjugations": [
+      "Myślę",
+      "Myślisz",
+      "Myślimy",
+      "Myślicie",
+      "Myśli",
+      "Myślą"
+    ]
+  },
+  {
+    "word": "Stać",
+    "translation": "Stand",
+    "category": "Verbs",
+    "conjugations": [
+      "Stoję",
+      "Stojisz",
+      "Stojimy",
+      "Stojicie",
+      "Stoi",
+      "Stoją"
+    ]
+  },
+  {
+    "word": "Siedzieć",
+    "translation": "Sit",
+    "category": "Verbs",
+    "conjugations": [
+      "Siedzę",
+      "Siedzisz",
+      "Siedzimy",
+      "Siedzicie",
+      "Siedzi",
+      "Siedzą"
+    ]
+  },
+  {
+    "word": "Leżeć",
+    "translation": "Lie [position]",
+    "category": "Verbs",
+    "conjugations": [
+      "Leżę",
+      "Leżysz",
+      "Leżymy",
+      "Leżycie",
+      "Leży",
+      "Leżą"
+    ]
+  },
+  {
+    "word": "Pracować",
+    "translation": "Work",
+    "category": "Verbs",
+    "conjugations": [
+      "Pracuję",
+      "Pracujesz",
+      "Pracujemy",
+      "Pracujecie",
+      "Pracuje",
+      "Pracują"
+    ]
+  },
+  {
+    "word": "Kupować",
+    "translation": "Buy",
+    "category": "Verbs",
+    "conjugations": [
+      "Kupuję",
+      "Kupujesz",
+      "Kupujemy",
+      "Kupujecie",
+      "Kupuje",
+      "Kupują"
+    ]
+  },
+  {
+    "word": "Tłumaczyć",
+    "translation": "Explain/Translate",
+    "category": "Verbs",
+    "conjugations": [
+      "Tłumaczę",
+      "Tłumaczysz",
+      "Tłumaczymy",
+      "Tłumaczycie",
+      "Tłumaczy",
+      "Tłumaczą"
+    ]
+  },
+  {
+    "word": "Myć",
+    "translation": "Wash",
+    "category": "Verbs",
+    "conjugations": [
+      "Myję",
+      "Myjesz",
+      "Myjemy",
+      "Myjecie",
+      "Myje",
+      "Myją"
+    ]
+  }
+]

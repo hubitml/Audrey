@@ -1,0 +1,16 @@
+// ================================================================
+//  DOM HELPERS & UTILITY
+// ================================================================
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+const Utils = {
+  capitalize: s => s.charAt(0).toUpperCase() + s.slice(1),
+  shuffle: arr => [...arr].sort(() => Math.random() - 0.5),
+  clamp: (val, min, max) => Math.min(Math.max(val, min), max),
+  wordKey: item => item.word + '|' + item.translation,
+  getWordFromKey: (key, words) => {
+    const [word, translation] = key.split('|');
+    return words.find(w => w.word === word && w.translation === translation);
+  }
+};

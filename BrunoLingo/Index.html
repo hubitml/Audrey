@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Word Drills</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- ===== HEADER ===== -->
+    <header>
+      <h1>Word<span>Drills</span></h1>
+      <div class="tag" id="header-tag">login</div>
+    </header>
+
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div class="card" id="screen-login">
+      <label class="field-label">Who's playing?</label>
+      <input type="text" id="login-input" placeholder="Type your name" autocomplete="off">
+      <button class="primary-btn" id="login-btn">Continue</button>
+      <div id="login-status" class="status-msg"></div>
+    </div>
+
+    <!-- ===== SETUP SCREEN ===== -->
+    <div class="hidden card" id="screen-setup">
+      <label class="field-label">Mode</label>
+      <div class="mode-row" id="mode-row">
+        <div class="mode-btn active" data-mode="mc">Multiple Choice</div>
+        <div class="mode-btn" data-mode="verbs">Verbs</div>
+      </div>
+
+      <div id="category-section">
+        <label class="field-label">Categories</label>
+        <div class="cat-toggle" id="category-toggle">
+          <span id="category-summary">All categories</span>
+          <span class="chev">▾</span>
+        </div>
+        <div id="category-options"></div>
+        <div id="category-warning" class="setup-warning"></div>
+      </div>
+
+      <label class="field-label">MC Type</label>
+      <div class="mode-row" id="mc-type-row">
+        <div class="mode-btn mc-type-btn active" data-mctype="normal">Normal</div>
+        <div class="mode-btn mc-type-btn" data-mctype="reversed">Reversed</div>
+        <div class="mode-btn mc-type-btn" data-mctype="category">Category</div>
+      </div>
+
+      <button class="primary-btn" id="start-btn">Start</button>
+      <div id="setup-status" class="status-msg"></div>
+    </div>
+
+    <!-- ===== HISTORY CARD ===== -->
+    <div class="hidden card" id="history-card">
+      <div class="tag" style="text-align:center; margin-bottom:16px;">History</div>
+      <div class="stats-cols">
+        <div class="stat-col">
+          <div class="stat-mode">Multiple Choice</div>
+          <div class="stat-num" id="stat-mc-num">0/0</div>
+          <div class="stat-acc" id="stat-mc-acc">0%</div>
+        </div>
+        <div class="stat-col">
+          <div class="stat-mode">Verbs</div>
+          <div class="stat-num" id="stat-verbs-num">0/0</div>
+          <div class="stat-acc" id="stat-verbs-acc">0%</div>
+        </div>
+      </div>
+      <div class="tag" style="margin:20px 0 8px;">Recent sessions</div>
+      <div id="history-list"></div>
+      <div class="button-group">
+        <button class="ghost-btn" id="stats-btn">📊 Stats</button>
+        <button class="ghost-btn" id="logout-btn">Switch user</button>
+      </div>
+      <div id="save-status" class="status-msg" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- ===== MC SCREEN ===== -->
+    <div class="hidden" id="screen-mc">
+      <div class="score-row">
+        <span id="mc-count">Question 0</span>
+        <div class="hearts-display" id="mc-hearts"></div>
+        <span id="mc-score">Score: 0</span>
+      </div>
+      <div class="card">
+        <div class="word-display" id="mc-word"></div>
+        <div class="word-caption" id="mc-category"></div>
+      </div>
+      <div id="mc-options"></div>
+      <div id="mc-reveal-container"></div>
+      <button class="quit-btn" id="mc-quit-btn">✕ Quit</button>
+    </div>
+
+    <!-- ===== MATCH SCREEN ===== -->
+    <div class="hidden" id="screen-match">
+      <div class="score-row">
+        <span id="match-count">Conjugate: </span>
+        <span id="match-score">Correct: 0/6</span>
+        <div class="hearts-display" id="match-hearts"></div>
+      </div>
+      <div class="match-grid">
+        <div class="match-col" id="match-left"></div>
+        <div class="match-col" id="match-right"></div>
+      </div>
+      <div id="match-status" class="status-msg" style="margin-top:10px;"></div>
+      <button class="quit-btn" id="match-quit-btn">✕ Quit</button>
+    </div>
+
+    <!-- ===== END SCREEN ===== -->
+    <div class="hidden card" id="screen-end">
+      <div class="tag" style="text-align:center;">session complete</div>
+      <div class="end-score" id="end-score">0%</div>
+      <div class="end-caption" id="end-caption"></div>
+      <button class="primary-btn" id="replay-btn">Play Again</button>
+      <button class="ghost-btn" id="change-settings-btn">Change Settings</button>
+    </div>
+
+    <footer>made for two — edit words in editor.html</footer>
+  </div>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="js/config.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/voiceManager.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/mastery.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/wordManager.js"></script>
+  <script src="js/audioHelper.js"></script>
+  <script src="js/mc.js"></script>
+  <script src="js/matchingEngine.js"></script>
+  <script src="js/verbsMode.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/login.js"></script>
+  <script src="js/setup.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

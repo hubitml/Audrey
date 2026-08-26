@@ -1,0 +1,222 @@
+[
+  {
+    "word": "Przystawki",
+    "translation": "Appetizers",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Sól",
+    "translation": "Salt",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Pieprz",
+    "translation": "Pepper",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Warzywa",
+    "translation": "Vegetables",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Piwo",
+    "translation": "Beer",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Mięso",
+    "translation": "Meat",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Ryby",
+    "translation": "Fish",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Czosnek",
+    "translation": "Garlic",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Kurczak",
+    "translation": "Chicken",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Wołowina",
+    "translation": "Beef",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Krewetki",
+    "translation": "Shrimps",
+    "category": "Hospitality"
+  },
+  {
+    "word": "Zielony",
+    "translation": "Green",
+    "category": "Colors"
+  },
+  {
+    "word": "Czerwony",
+    "translation": "Red",
+    "category": "Colors"
+  },
+  {
+    "word": "Czarny",
+    "translation": "Black",
+    "category": "Colors"
+  },
+  {
+    "word": "Biały",
+    "translation": "White",
+    "category": "Colors"
+  },
+  {
+    "word": "Niebieski",
+    "translation": "Blue",
+    "category": "Colors"
+  },
+  {
+    "word": "Żółty",
+    "translation": "Yellow",
+    "category": "Colors"
+  },
+  {
+    "word": "Różowy",
+    "translation": "Pink",
+    "category": "Colors"
+  },
+  {
+    "word": "Ciało",
+    "translation": "Body",
+    "category": "Body"
+  },
+  {
+    "word": "Oczy",
+    "translation": "Eyes",
+    "category": "Body"
+  },
+  {
+    "word": "Głowa",
+    "translation": "Head",
+    "category": "Body"
+  },
+  {
+    "word": "Dupa",
+    "translation": "Ass",
+    "category": "Body"
+  },
+  {
+    "word": "Tyłek",
+    "translation": "Butt",
+    "category": "Body"
+  },
+  {
+    "word": "Ręce",
+    "translation": "Hands",
+    "category": "Body"
+  },
+  {
+    "word": "Stopy",
+    "translation": "Feet",
+    "category": "Body"
+  },
+  {
+    "word": "Nos",
+    "translation": "Nose",
+    "category": "Body"
+  },
+  {
+    "word": "Usta",
+    "translation": "Mouth",
+    "category": "Body"
+  },
+  {
+    "word": "Dzień Dobry",
+    "translation": "Hello",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dobry Wieczór",
+    "translation": "Good evening",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dobranoc",
+    "translation": "Goodnight",
+    "category": "Greetings"
+  },
+  {
+    "word": "Cześć",
+    "translation": "Hi",
+    "category": "Greetings"
+  },
+  {
+    "word": "Smacznego",
+    "translation": "[wishing a good meal]",
+    "category": "Greetings"
+  },
+  {
+    "word": "Na zdrowie",
+    "translation": "Bless you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Przepraszam",
+    "translation": "Sorry/Excuse me",
+    "category": "Greetings"
+  },
+  {
+    "word": "Do widzenia",
+    "translation": "Goodbye",
+    "category": "Greetings"
+  },
+  {
+    "word": "Do zobaczenia",
+    "translation": "See you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Proszę",
+    "translation": "Please",
+    "category": "Greetings"
+  },
+  {
+    "word": "Dziękuję",
+    "translation": "Thank you",
+    "category": "Greetings"
+  },
+  {
+    "word": "Miłego dnia",
+    "translation": "Have a nice day",
+    "category": "Greetings"
+  },
+  {
+    "word": "Nogi",
+    "translation": "Legs",
+    "category": "Body"
+  },
+  {
+    "word": "Włosy",
+    "translation": "Hair",
+    "category": "Body"
+  },
+  {
+    "word": "Fioletowy",
+    "translation": "Violet",
+    "category": "Colors"
+  },
+  {
+    "word": "Pomarańczowy",
+    "translation": "Orange",
+    "category": "Colors"
+  },
+  {
+    "word": "Brązowy",
+    "translation": "Brown",
+    "category": "Colors"
+  }
+]
