@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  /* ---------- same base styles, with additions for expandable row ---------- */
+  /* ---------- styles ---------- */
   :root{
     --ink:#1B2430;
     --surface:#232E3D;
@@ -156,7 +156,7 @@
     margin-top:6px;
   }
 
-  /* Voice manager (unchanged) */
+  /* Voice manager styles */
   .voice-item{
     display:flex;
     justify-content:space-between;
@@ -223,6 +223,39 @@
   .voice-select-row{ display:flex; gap:8px; margin-bottom:10px; }
   .voice-select-row select{ flex:3; }
   .voice-select-row button{ flex:1; min-width:80px; }
+  .debug-info{ 
+    background:var(--ink); 
+    padding:8px; 
+    border-radius:4px; 
+    font-family:monospace; 
+    font-size:11px; 
+    margin-top:8px;
+    word-break:break-all;
+    color:var(--paper-dim);
+    max-height:150px;
+    overflow-y:auto;
+    display:none;
+  }
+  .audio-status-badge {
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:4px;
+    font-size:10px;
+    font-weight:bold;
+  }
+  .audio-status-badge.cloud { background:var(--sage); color:var(--ink); }
+  .audio-status-badge.local { background:var(--amber); color:var(--ink); }
+  .audio-status-badge.none { background:var(--surface-2); color:var(--paper-dim); }
+  
+  /* Audio player */
+  .audio-player {
+    width: 100%;
+    max-width: 200px;
+    height: 40px;
+  }
+  .audio-player::-webkit-media-controls-panel {
+    background: var(--surface-2);
+  }
 </style>
 </head>
 <body>
@@ -285,7 +318,7 @@ Chicken">Topic: </textarea>
 
   <!-- ===== VOICE MANAGER ===== -->
   <div class="card">
-    <label class="field-label">Voice recordings</label>
+    <label class="field-label">Voice recordings <span style="font-family:Inter;font-size:11px;color:var(--paper-dim);font-weight:400;">(stored as .webm files in GitHub)</span></label>
     <div class="voice-count"><strong id="voice-total">0</strong> / <strong id="voice-total-words">0</strong> words recorded</div>
     
     <div class="voice-progress-bar">
@@ -308,19 +341,19 @@ Chicken">Topic: </textarea>
     <div id="voice-list"></div>
 
     <div class="btn-row">
-      <button class="btn-secondary" id="voice-export-btn">📤 Export</button>
-      <button class="btn-secondary" id="voice-import-btn">📥 Import</button>
-      <button class="btn-secondary" id="voice-delete-all-btn" style="border-color:var(--rust); color:var(--rust);">🗑️ Clear all</button>
+      <button class="btn-secondary" id="voice-upload-all-btn">📤 Upload all audio to GitHub</button>
+      <button class="btn-secondary" id="voice-delete-all-btn" style="border-color:var(--rust); color:var(--rust);">🗑️ Clear all audio</button>
     </div>
-    <input type="file" id="voice-import-file" accept=".json" style="display:none;">
-    <div id="voice-import-status" class="status"></div>
+    
+    <!-- Debug info -->
+    <div id="voice-debug" class="debug-info"></div>
   </div>
 
   <!-- ===== WORD TABLE ===== -->
   <div class="card">
     <div class="count-tag" id="word-count">0 words</div>
     <table>
-      <thead><tr><th>Word</th><th>Translation</th><th>Category</th><th>Conj.</th><th></th></tr></thead>
+      <thead><tr><th>Word</th><th>Translation</th><th>Category</th><th>Audio</th><th>Conj.</th><th></th></tr></thead>
       <tbody id="word-table-body"></tbody>
     </table>
   </div>
@@ -328,12 +361,45 @@ Chicken">Topic: </textarea>
 
 <script>
 // ================================================================
+//  IOS AUDIO UNLOCK
+// ================================================================
+function enableIOSAudio() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (AudioContext) {
+    const ctx = new AudioContext();
+    if (ctx.state === 'suspended') {
+      const unlock = () => {
+        ctx.resume().then(() => {
+          console.log('🔊 Audio context unlocked');
+          document.removeEventListener('click', unlock);
+          document.removeEventListener('touchstart', unlock);
+          document.removeEventListener('touchend', unlock);
+        }).catch(err => {
+          console.warn('Audio unlock failed:', err);
+        });
+      };
+      document.addEventListener('click', unlock);
+      document.addEventListener('touchstart', unlock);
+      document.addEventListener('touchend', unlock);
+    } else {
+      console.log('🔊 Audio context already running');
+    }
+  }
+}
+enableIOSAudio();
+
+// ================================================================
 //  UTILITY
 // ================================================================
 const Utils = {
   wordKey: (item) => item.word + '|' + item.translation,
   escapeAttr: (s) => String(s || '').replace(/"/g, '&quot;'),
-  capitalize: (s) => s.charAt(0).toUpperCase() + s.slice(1)
+  capitalize: (s) => s.charAt(0).toUpperCase() + s.slice(1),
+  // Generate a safe filename from word + translation
+  audioFileName: (word, translation) => {
+    const clean = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return `audio/${clean(word)}_${clean(translation)}.webm`;
+  }
 };
 const PRONOUNS = ["ja", "ty", "my", "wy", "on/ona/ono", "oni"];
 
@@ -350,22 +416,26 @@ function refreshTable(){
   words.forEach((w, i) => {
     const isVerb = w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6;
     const hasConj = isVerb ? '✅' : '';
+    const hasAudio = w.audioFile && w.audioFile.length > 0;
+    const audioStatus = hasAudio ? '🎤' : '⏺️';
+    const audioClass = hasAudio ? 'cloud' : 'none';
+    
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input data-i="${i}" data-field="word" value="${Utils.escapeAttr(w.word)}"></td>
       <td><input data-i="${i}" data-field="translation" value="${Utils.escapeAttr(w.translation)}"></td>
       <td><input data-i="${i}" data-field="category" value="${Utils.escapeAttr(w.category)}"></td>
+      <td><span class="audio-status-badge ${audioClass}">${audioStatus}</span></td>
       <td><button class="conj-toggle-btn" data-i="${i}">${hasConj || '✏️'}</button></td>
       <td><button class="del-btn" data-i="${i}">Delete</button></td>
     `;
     body.appendChild(tr);
 
-    // Expandable conjugation row (right after this row)
+    // Expandable conjugation row
     const conjRow = document.createElement('tr');
     conjRow.className = 'conj-row';
     conjRow.dataset.i = i;
-    // Build the 6 input fields
-    let html = `<td colspan="5"><div class="conj-row-inner">`;
+    let html = `<td colspan="6"><div class="conj-row-inner">`;
     PRONOUNS.forEach((p, idx) => {
       const val = (w.conjugations && w.conjugations[idx]) ? w.conjugations[idx] : '';
       html += `<div class="row"><span class="label-fixed">${p}</span><input type="text" class="conj-input" data-idx="${idx}" value="${Utils.escapeAttr(val)}" placeholder="conjugation"></div>`;
@@ -374,14 +444,14 @@ function refreshTable(){
     conjRow.innerHTML = html;
     body.appendChild(conjRow);
 
-    // Toggle button to show/hide the conj row
+    // Toggle button for conj row
     const toggleBtn = tr.querySelector('.conj-toggle-btn');
     toggleBtn.addEventListener('click', () => {
       const row = body.querySelector(`.conj-row[data-i="${i}"]`);
       row.classList.toggle('open');
     });
 
-    // Save conjugations button
+    // Save conjugations
     const saveBtn = conjRow.querySelector('.save-conj-btn');
     saveBtn.addEventListener('click', () => {
       const inputs = conjRow.querySelectorAll('.conj-input');
@@ -392,13 +462,13 @@ function refreshTable(){
         return;
       }
       w.conjugations = newConj;
-      refreshTable(); // re-render to update the toggle button text
+      refreshTable();
       el('table-status').textContent = `Conjugations saved for "${w.word}".`;
       el('table-status').className = 'status success';
     });
   });
 
-  // Bind inline edits (input fields)
+  // Bind inline edits
   body.querySelectorAll('input[data-i]').forEach(inp => {
     inp.addEventListener('input', e => {
       const i = e.target.dataset.i, field = e.target.dataset.field;
@@ -429,7 +499,7 @@ function refreshCategoryList(){
 }
 
 // ================================================================
-//  ADD SINGLE WORD (no conjugation UI here)
+//  ADD SINGLE WORD
 // ================================================================
 el('add-btn').addEventListener('click', () => {
   const word = el('new-word').value.trim();
@@ -513,7 +583,7 @@ el('table-replace-btn').addEventListener('click', () => {
 });
 
 // ================================================================
-//  GITHUB - LOAD & SAVE
+//  GITHUB - LOAD & SAVE (with separate audio files)
 // ================================================================
 const GH_OWNER = 'hubitml';
 const GH_REPO = 'Audrey';
@@ -567,6 +637,130 @@ async function saveFile(token, path, content, sha){
   return data.content.sha;
 }
 
+// Upload an audio file to GitHub
+async function uploadAudioFile(token, fileName, audioBlob) {
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${fileName}`;
+  
+  // Convert blob to base64
+  const reader = new FileReader();
+  const base64 = await new Promise((resolve) => {
+    reader.onloadend = () => {
+      const data = reader.result.split(',')[1];
+      resolve(data);
+    };
+    reader.readAsDataURL(audioBlob);
+  });
+  
+  const body = {
+    message: `Upload audio: ${fileName}`,
+    content: base64,
+    branch: GH_BRANCH
+  };
+  
+  // Check if file exists to get SHA
+  try {
+    const existing = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (existing.ok) {
+      const data = await existing.json();
+      body.sha = data.sha;
+    }
+  } catch (e) {
+    // File doesn't exist, that's fine
+  }
+  
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(`GitHub upload failed: ${errData.message || res.statusText}`);
+  }
+  
+  return await res.json();
+}
+
+// Upload all audio files to GitHub
+async function uploadAllAudio(token) {
+  const withAudio = words.filter(w => w.audioData && w.audioData.length > 0);
+  let uploaded = 0;
+  let failed = 0;
+  
+  for (const word of withAudio) {
+    try {
+      const fileName = Utils.audioFileName(word.word, word.translation);
+      const byteCharacters = atob(word.audioData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: word.audioType || 'audio/webm' });
+      
+      await uploadAudioFile(token, fileName, blob);
+      
+      // Update word with the GitHub file path
+      word.audioFile = fileName;
+      delete word.audioData; // Remove the base64 data to save space
+      word.audioUploaded = true;
+      
+      uploaded++;
+      logDebug(`Uploaded audio: ${fileName}`);
+      
+    } catch (err) {
+      failed++;
+      console.error(`Failed to upload ${word.word}:`, err);
+    }
+  }
+  
+  return { uploaded, failed };
+}
+
+// Load audio files from GitHub
+async function loadAudioFile(token, fileName) {
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${fileName}?ref=${GH_BRANCH}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+  });
+  
+  if (!res.ok) {
+    return null;
+  }
+  
+  const data = await res.json();
+  // Return the base64 content
+  return data.content;
+}
+
+async function loadAllAudio(token) {
+  const withAudio = words.filter(w => w.audioFile && w.audioFile.length > 0);
+  let loaded = 0;
+  let failed = 0;
+  
+  for (const word of withAudio) {
+    try {
+      const audioData = await loadAudioFile(token, word.audioFile);
+      if (audioData) {
+        word.audioData = audioData;
+        loaded++;
+        logDebug(`Loaded audio: ${word.audioFile}`);
+      } else {
+        failed++;
+      }
+    } catch (err) {
+      failed++;
+      console.error(`Failed to load ${word.word}:`, err);
+    }
+  }
+  
+  return { loaded, failed };
+}
+
+// ===== GITHUB LOAD/SAVE =====
 el('github-load-btn').addEventListener('click', async () => {
   const status = el('github-status');
   const token = getToken();
@@ -590,7 +784,7 @@ el('github-load-btn').addEventListener('click', async () => {
       throw new Error(`words.json: ${wordsRes.status} ${wordsRes.statusText}`);
     }
 
-    // Load verbs.json (if exists)
+    // Load verbs.json
     const verbsRes = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/verbs.json?ref=${GH_BRANCH}`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
     });
@@ -604,14 +798,21 @@ el('github-load-btn').addEventListener('click', async () => {
     }
 
     words = [...loadedWords, ...loadedVerbs];
+    
+    // Load audio files for words that have audioFile references
+    status.textContent = 'Loading audio files...';
+    const audioResult = await loadAllAudio(token);
+    
     refreshTable();
     populateWordSelect();
     updateVoiceCount();
-    status.textContent = `Loaded ${words.length} words (${loadedWords.length} words, ${loadedVerbs.length} verbs).`;
+    
+    status.textContent = `Loaded ${words.length} words (${audioResult.loaded} audio files).`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Load failed: ' + err.message;
     status.className = 'status error';
+    console.error(err);
   }
 });
 
@@ -622,177 +823,68 @@ el('github-save-btn').addEventListener('click', async () => {
   status.textContent = 'Saving…';
   status.className = 'status';
   try {
+    // Upload audio files first
+    status.textContent = 'Uploading audio files...';
+    const audioResult = await uploadAllAudio(token);
+    
+    // Separate words and verbs (but keep audioFile references)
     const wordsOnly = words.filter(w => !w.conjugations || !Array.isArray(w.conjugations) || w.conjugations.length !== 6);
     const verbsOnly = words.filter(w => w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
 
+    // Clean up - keep only necessary fields
+    const cleanWords = wordsOnly.map(w => {
+      const clean = { word: w.word, translation: w.translation, category: w.category || 'uncategorized' };
+      if (w.audioFile) clean.audioFile = w.audioFile;
+      return clean;
+    });
+    
+    const cleanVerbs = verbsOnly.map(w => {
+      const clean = { word: w.word, translation: w.translation, category: w.category || 'uncategorized', conjugations: w.conjugations };
+      if (w.audioFile) clean.audioFile = w.audioFile;
+      return clean;
+    });
+
     const shaWords = await fetchFileSha(token, 'words.json');
-    const newShaWords = await saveFile(token, 'words.json', wordsOnly, shaWords);
+    const newShaWords = await saveFile(token, 'words.json', cleanWords, shaWords);
     currentFileShaWords = newShaWords;
 
     const shaVerbs = await fetchFileSha(token, 'verbs.json');
-    const newShaVerbs = await saveFile(token, 'verbs.json', verbsOnly, shaVerbs);
+    const newShaVerbs = await saveFile(token, 'verbs.json', cleanVerbs, shaVerbs);
     currentFileShaVerbs = newShaVerbs;
 
-    status.textContent = `Saved ${wordsOnly.length} words and ${verbsOnly.length} verbs.`;
+    const audioCount = words.filter(w => w.audioFile).length;
+    status.textContent = `Saved ${wordsOnly.length} words and ${verbsOnly.length} verbs (${audioCount} with audio, ${audioResult.uploaded} uploaded).`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Save failed: ' + err.message;
     status.className = 'status error';
+    console.error(err);
   }
 });
 
 // ================================================================
-//  VOICE MANAGER (unchanged – same as before)
+//  VOICE RECORDING - Store as separate files
 // ================================================================
-const VoiceManager = {
-  dbName: 'WordDrillsVoices',
-  dbVersion: 1,
-  storeName: 'recordings',
-  db: null,
-  mediaRecorder: null,
-  audioChunks: [],
-  isRecording: false,
-
-  async init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.dbVersion);
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          const store = db.createObjectStore(this.storeName, { keyPath: 'wordKey' });
-          store.createIndex('word', 'word', { unique: false });
-          store.createIndex('translation', 'translation', { unique: false });
-        }
-      };
-      request.onsuccess = (event) => { this.db = event.target.result; resolve(); };
-      request.onerror = (event) => { reject(event.target.error); };
-    });
-  },
-
-  async saveRecording(wordKey, word, translation, category, audioBlob) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const store = transaction.objectStore(this.storeName);
-      const record = { wordKey, word, translation, category: category || 'unknown', audioBlob, timestamp: Date.now() };
-      const request = store.put(record);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async getRecording(wordKey) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.get(wordKey);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async getAllRecordings() {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async deleteRecording(wordKey) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.delete(wordKey);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async deleteAll() {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.clear();
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.mediaRecorder = new MediaRecorder(stream);
-      this.audioChunks = [];
-      this.mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) this.audioChunks.push(event.data); };
-      this.mediaRecorder.start();
-      this.isRecording = true;
-      return true;
-    } catch (err) { console.error(err); return false; }
-  },
-
-  async stopRecording() {
-    if (!this.mediaRecorder || !this.isRecording) return null;
-    return new Promise((resolve) => {
-      this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        this.isRecording = false;
-        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        resolve(audioBlob);
-      };
-      this.mediaRecorder.stop();
-    });
-  },
-
-  playAudio(audioBlob) {
-    const url = URL.createObjectURL(audioBlob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    audio.play();
-    return audio;
-  },
-
-  async exportAll() {
-    const recordings = await this.getAllRecordings();
-    return await Promise.all(recordings.map(async (r) => {
-      const base64 = await this.blobToBase64(r.audioBlob);
-      return { wordKey: r.wordKey, word: r.word, translation: r.translation, category: r.category, audio: base64, timestamp: r.timestamp };
-    }));
-  },
-
-  blobToBase64(blob) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  },
-
-  async importFromData(data) {
-    let count = 0;
-    for (const r of data) {
-      try {
-        const response = await fetch(r.audio);
-        const blob = await response.blob();
-        await this.saveRecording(r.wordKey, r.word, r.translation, r.category || 'unknown', blob);
-        count++;
-      } catch (e) { console.warn('Failed to import:', r.wordKey, e); }
-    }
-    return count;
-  }
-};
-
-// ================================================================
-//  VOICE UI (unchanged)
-// ================================================================
-let voiceRecordings = [];
 let voiceIsRecording = false;
 let voicePending = null;
 let voiceFilter = 'unrecorded';
+let debugMode = true;
+let mediaRecorder = null;
+let audioChunks = [];
+
+function logDebug(message, data) {
+  const debugEl = el('voice-debug');
+  if (debugMode && debugEl) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = data ? `${message}: ${JSON.stringify(data)}` : message;
+    debugEl.innerHTML += `\n[${timestamp}] ${logMessage}`;
+    debugEl.style.display = 'block';
+    debugEl.scrollTop = debugEl.scrollHeight;
+    console.log('[Voice Debug]', message, data || '');
+  }
+}
 
 async function loadVoiceRecordings() {
-  voiceRecordings = await VoiceManager.getAllRecordings();
   populateWordSelect();
   renderVoiceList();
   updateVoiceCount();
@@ -805,12 +897,14 @@ function populateWordSelect() {
   
   const wordsToShow = voiceFilter === 'all' 
     ? words 
-    : words.filter(w => !voiceRecordings.some(r => r.wordKey === Utils.wordKey(w)));
+    : words.filter(w => !w.audioData && !w.audioFile);
   
   wordsToShow.forEach(w => {
     const opt = document.createElement('option');
     opt.value = Utils.wordKey(w);
-    opt.textContent = `${w.word} → ${w.translation} [${w.category}]`;
+    const hasAudio = w.audioData || w.audioFile;
+    const status = hasAudio ? ' ✓' : '';
+    opt.textContent = `${w.word} → ${w.translation} [${w.category}]${status}`;
     if (opt.value === currentVal) opt.selected = true;
     select.appendChild(opt);
   });
@@ -818,27 +912,28 @@ function populateWordSelect() {
 
 function renderVoiceList() {
   const container = el('voice-list');
+  const withAudio = words.filter(w => w.audioData || w.audioFile);
   
-  if (voiceRecordings.length === 0) {
+  if (withAudio.length === 0) {
     container.innerHTML = `<div class="empty-state">No recordings yet. Select a word above and click Record.</div>`;
     return;
   }
 
-  container.innerHTML = voiceRecordings.map(r => {
-    const wordObj = words.find(w => Utils.wordKey(w) === r.wordKey);
-    const category = wordObj ? wordObj.category : r.category;
+  container.innerHTML = withAudio.map(w => {
+    const dataSize = w.audioData ? (w.audioData.length / 1024).toFixed(1) + ' KB' : '✅ uploaded';
+    const isUploaded = w.audioFile ? ' (📤 on GitHub)' : ' (💾 local)';
     
     return `
     <div class="voice-item">
       <div>
-        <span class="voice-word">${r.word}</span>
-        <span class="voice-meta">${r.translation}</span>
-        <span class="voice-meta">[${category}]</span>
-        <span class="voice-meta" style="color:var(--sage);">✓ recorded</span>
+        <span class="voice-word">${w.word}</span>
+        <span class="voice-meta">${w.translation}</span>
+        <span class="voice-meta">[${w.category}]</span>
+        <span class="voice-meta" style="color:var(--sage);">✓ ${dataSize}${isUploaded}</span>
       </div>
       <div class="voice-actions">
-        <button class="play-btn" onclick="window.playVoice('${r.wordKey}')">▶️</button>
-        <button class="delete-btn" onclick="window.deleteVoice('${r.wordKey}')">🗑️</button>
+        <button class="play-btn" onclick="window.playVoice('${Utils.wordKey(w)}')">▶️</button>
+        <button class="delete-btn" onclick="window.deleteVoice('${Utils.wordKey(w)}')">🗑️</button>
       </div>
     </div>
   `}).join('');
@@ -846,7 +941,7 @@ function renderVoiceList() {
 
 function updateVoiceCount() {
   const total = words.length;
-  const recorded = voiceRecordings.length;
+  const recorded = words.filter(w => w.audioData || w.audioFile).length;
   el('voice-total').textContent = recorded;
   el('voice-total-words').textContent = total;
   
@@ -857,7 +952,7 @@ function updateVoiceCount() {
     el('voice-status').textContent = 'No words loaded. Add words first!';
     el('voice-status').className = 'status';
   } else if (recorded === total && total > 0) {
-    el('voice-status').textContent = '🎉 All words recorded!';
+    el('voice-status').textContent = '🎉 All words recorded! Click "Upload all audio" to save to GitHub.';
     el('voice-status').className = 'status success';
   } else {
     el('voice-status').textContent = `${total - recorded} words left to record`;
@@ -882,52 +977,202 @@ async function startVoiceRecording() {
     return;
   }
 
-  const existing = await VoiceManager.getRecording(wordKey);
-  if (existing) {
-    if (!confirm(`"${wordObj.word}" already has a recording. Overwrite?`)) return;
+  if (wordObj.audioData || wordObj.audioFile) {
+    if (!confirm(`"${wordObj.word}" already has audio. Overwrite?`)) return;
   }
 
-  const success = await VoiceManager.startRecording();
-  if (success) {
+  try {
+    el('voice-status').textContent = '🎤 Requesting microphone access...';
+    el('voice-status').className = 'status';
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      } 
+    });
+    
+    // Use opus codec for better quality
+    let mimeType = 'audio/webm;codecs=opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+      }
+    }
+    
+    logDebug('Using MIME type:', mimeType);
+    
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: mimeType,
+      audioBitsPerSecond: 128000
+    });
+    
+    audioChunks = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        audioChunks.push(event.data);
+        logDebug('Chunk received:', event.data.size);
+      }
+    };
+    
+    mediaRecorder.start(1000);
     voiceIsRecording = true;
     voicePending = { wordKey, word: wordObj.word, translation: wordObj.translation, category: wordObj.category };
+    
     el('voice-record-btn').textContent = '⏹️ Stop';
     el('voice-record-btn').style.background = 'var(--rust)';
     el('voice-status').innerHTML = `<span class="recording-indicator"></span> Recording "${wordObj.word}"... Click Stop when done.`;
     el('voice-status').className = 'status';
-  } else {
-    el('voice-status').textContent = '❌ Could not access microphone.';
+    
+    logDebug('Recording started for', wordObj.word);
+    
+  } catch (err) {
+    console.error('Recording error:', err);
+    if (err.name === 'NotAllowedError') {
+      el('voice-status').textContent = '❌ Microphone access denied. Please allow microphone access in your browser settings.';
+    } else if (err.name === 'NotFoundError') {
+      el('voice-status').textContent = '❌ No microphone found. Please connect a microphone.';
+    } else {
+      el('voice-status').textContent = '❌ ' + err.message;
+    }
     el('voice-status').className = 'status error';
+    voiceIsRecording = false;
   }
 }
 
 async function stopVoiceRecording() {
-  const audioBlob = await VoiceManager.stopRecording();
-  if (!audioBlob) return;
-  if (!voicePending) return;
+  try {
+    if (!mediaRecorder || !voiceIsRecording) {
+      throw new Error('No recording in progress');
+    }
+    
+    el('voice-status').textContent = '⏹️ Stopping recording...';
+    el('voice-status').className = 'status';
+    
+    const audioBlob = await new Promise((resolve) => {
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        logDebug('Audio blob size:', blob.size);
+        resolve(blob);
+      };
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    });
+    
+    if (!audioBlob || audioBlob.size === 0) {
+      throw new Error('Audio recording is empty (0 bytes)');
+    }
+    
+    if (!voicePending) {
+      throw new Error('No pending recording');
+    }
 
-  await VoiceManager.saveRecording(
-    voicePending.wordKey,
-    voicePending.word,
-    voicePending.translation,
-    voicePending.category,
-    audioBlob
-  );
+    // Convert audio to base64 for local storage
+    const audioData = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.readAsDataURL(audioBlob);
+    });
 
-  voiceIsRecording = false;
-  voicePending = null;
-  el('voice-record-btn').textContent = '🔴 Record';
-  el('voice-record-btn').style.background = '';
-  el('voice-status').textContent = '✅ Saved!';
-  el('voice-status').className = 'status success';
+    // Find and update the word object
+    const wordIndex = words.findIndex(w => Utils.wordKey(w) === voicePending.wordKey);
+    if (wordIndex === -1) {
+      throw new Error('Word not found in list');
+    }
+    
+    words[wordIndex].audioData = audioData;
+    words[wordIndex].audioType = mediaRecorder.mimeType || 'audio/webm';
+    // Remove any old audioFile reference (will be re-created on upload)
+    delete words[wordIndex].audioFile;
+    
+    voiceIsRecording = false;
+    const savedWord = words[wordIndex].word;
+    voicePending = null;
+    
+    el('voice-record-btn').textContent = '🔴 Record';
+    el('voice-record-btn').style.background = '';
+    el('voice-status').textContent = `✅ Audio saved locally for "${savedWord}"! (${(audioData.length / 1024).toFixed(1)} KB)`;
+    el('voice-status').className = 'status success';
 
-  await loadVoiceRecordings();
-  setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
+    refreshTable();
+    populateWordSelect();
+    renderVoiceList();
+    updateVoiceCount();
+    
+    // Auto-play to verify
+    try {
+      playAudioFromData(audioData, mediaRecorder.mimeType);
+    } catch (playErr) {
+      // Don't show error for auto-play
+    }
+    
+  } catch (err) {
+    console.error('Stop recording error:', err);
+    el('voice-status').textContent = '❌ Error saving: ' + err.message;
+    el('voice-status').className = 'status error';
+    voiceIsRecording = false;
+    el('voice-record-btn').textContent = '🔴 Record';
+    el('voice-record-btn').style.background = '';
+  }
+}
+
+function playAudioFromData(audioData, mimeType = 'audio/webm') {
+  try {
+    if (!audioData || audioData.length === 0) {
+      throw new Error('No audio data');
+    }
+    
+    const byteCharacters = atob(audioData);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType || 'audio/webm' });
+    
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.onerror = (e) => {
+      console.warn('Playback error:', e);
+      // Try iOS-friendly fallback
+      const fallbackAudio = new Audio();
+      fallbackAudio.src = url;
+      fallbackAudio.play().catch(err => console.warn('Fallback play failed:', err));
+    };
+    
+    audio.play().catch(err => {
+      console.warn('Play failed:', err);
+      // iOS often needs user interaction to play
+      el('voice-status').textContent = '⚠️ Tap play again to hear audio (iOS requires user interaction).';
+      el('voice-status').className = 'status error';
+    });
+    
+    return audio;
+    
+  } catch (err) {
+    console.error('Play error:', err);
+    throw err;
+  }
 }
 
 el('voice-record-btn').addEventListener('click', () => {
-  if (voiceIsRecording) { stopVoiceRecording(); }
-  else { startVoiceRecording(); }
+  if (voiceIsRecording) { 
+    stopVoiceRecording(); 
+  } else { 
+    startVoiceRecording(); 
+  }
 });
 
 el('voice-filter-unrecorded').addEventListener('click', () => {
@@ -946,68 +1191,166 @@ el('voice-filter-all').addEventListener('click', () => {
   renderVoiceList();
 });
 
-window.playVoice = async function(wordKey) {
-  const record = await VoiceManager.getRecording(wordKey);
-  if (record && record.audioBlob) {
-    VoiceManager.playAudio(record.audioBlob);
+// Upload all audio files to GitHub
+el('voice-upload-all-btn').addEventListener('click', async () => {
+  const token = getToken();
+  if (!token) {
+    el('voice-status').textContent = '❌ Please save a GitHub token first.';
+    el('voice-status').className = 'status error';
+    return;
+  }
+  
+  const withAudio = words.filter(w => w.audioData && w.audioData.length > 0);
+  if (withAudio.length === 0) {
+    el('voice-status').textContent = '⚠️ No audio data to upload.';
+    el('voice-status').className = 'status error';
+    return;
+  }
+  
+  if (!confirm(`Upload ${withAudio.length} audio files to GitHub?`)) return;
+  
+  el('voice-status').textContent = `📤 Uploading ${withAudio.length} audio files...`;
+  el('voice-status').className = 'status';
+  
+  try {
+    const result = await uploadAllAudio(token);
+    
+    // Update the UI
+    refreshTable();
+    populateWordSelect();
+    renderVoiceList();
+    updateVoiceCount();
+    
+    el('voice-status').textContent = `📤 Upload complete: ${result.uploaded} uploaded, ${result.failed} failed.`;
+    el('voice-status').className = result.failed > 0 ? 'status error' : 'status success';
+    
+  } catch (err) {
+    console.error('Upload error:', err);
+    el('voice-status').textContent = '❌ Upload failed: ' + err.message;
+    el('voice-status').className = 'status error';
+  }
+});
+
+window.playVoice = function(wordKey) {
+  try {
+    const word = words.find(w => Utils.wordKey(w) === wordKey);
+    if (!word) {
+      el('voice-status').textContent = '⚠️ Word not found.';
+      el('voice-status').className = 'status error';
+      return;
+    }
+    
+    // Check if we have audio data
+    let audioData = word.audioData;
+    
+    if (!audioData && word.audioFile) {
+      // We need to load from GitHub first
+      el('voice-status').textContent = '📥 Loading audio from GitHub...';
+      el('voice-status').className = 'status';
+      
+      const token = getToken();
+      if (!token) {
+        el('voice-status').textContent = '❌ Need GitHub token to load audio.';
+        el('voice-status').className = 'status error';
+        return;
+      }
+      
+      loadAudioFile(token, word.audioFile).then(data => {
+        if (data) {
+          word.audioData = data;
+          playAudioFromData(data, word.audioType || 'audio/webm');
+          el('voice-status').textContent = '▶️ Playing...';
+          el('voice-status').className = 'status';
+          setTimeout(() => {
+            if (el('voice-status').textContent === '▶️ Playing...') {
+              el('voice-status').textContent = '';
+            }
+          }, 3000);
+        } else {
+          el('voice-status').textContent = '❌ Could not load audio from GitHub.';
+          el('voice-status').className = 'status error';
+        }
+      }).catch(err => {
+        console.error('Load error:', err);
+        el('voice-status').textContent = '❌ Load error: ' + err.message;
+        el('voice-status').className = 'status error';
+      });
+      return;
+    }
+    
+    if (!audioData) {
+      el('voice-status').textContent = '⚠️ No audio found for this word.';
+      el('voice-status').className = 'status error';
+      return;
+    }
+    
     el('voice-status').textContent = '▶️ Playing...';
     el('voice-status').className = 'status';
-    setTimeout(() => { el('voice-status').textContent = ''; }, 2000);
+    
+    playAudioFromData(audioData, word.audioType || 'audio/webm');
+    
+    setTimeout(() => {
+      if (el('voice-status').textContent === '▶️ Playing...') {
+        el('voice-status').textContent = '';
+      }
+    }, 3000);
+    
+  } catch (err) {
+    console.error('Play error:', err);
+    el('voice-status').textContent = '❌ Playback error: ' + err.message;
+    el('voice-status').className = 'status error';
   }
 };
 
-window.deleteVoice = async function(wordKey) {
+window.deleteVoice = function(wordKey) {
   if (!confirm('Delete this recording?')) return;
-  await VoiceManager.deleteRecording(wordKey);
-  await loadVoiceRecordings();
-  el('voice-status').textContent = '🗑️ Deleted.';
+  
+  const word = words.find(w => Utils.wordKey(w) === wordKey);
+  if (!word) return;
+  
+  delete word.audioData;
+  delete word.audioFile;
+  delete word.audioType;
+  
+  refreshTable();
+  populateWordSelect();
+  renderVoiceList();
+  updateVoiceCount();
+  
+  el('voice-status').textContent = '🗑️ Audio deleted.';
   el('voice-status').className = 'status';
   setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
 };
-
-el('voice-export-btn').addEventListener('click', async () => {
-  const data = await VoiceManager.exportAll();
-  if (data.length === 0) { el('voice-import-status').textContent = '⚠️ No recordings to export.'; return; }
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `voice-recordings-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  el('voice-import-status').textContent = `📤 Exported ${data.length} recordings.`;
-  el('voice-import-status').className = 'status success';
-  setTimeout(() => { el('voice-import-status').textContent = ''; }, 3000);
-});
-
-el('voice-import-btn').addEventListener('click', () => el('voice-import-file').click());
-el('voice-import-file').addEventListener('change', async (e) => {
-  if (e.target.files.length > 0) {
-    try {
-      const text = await e.target.files[0].text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data) || data.length === 0) { throw new Error('Invalid format'); }
-      const count = await VoiceManager.importFromData(data);
-      await loadVoiceRecordings();
-      el('voice-import-status').textContent = `✅ Imported ${count} recordings.`;
-      el('voice-import-status').className = 'status success';
-      setTimeout(() => { el('voice-import-status').textContent = ''; }, 3000);
-    } catch (err) {
-      el('voice-import-status').textContent = '❌ Import failed: ' + err.message;
-      el('voice-import-status').className = 'status error';
-    }
-  }
-  e.target.value = '';
-});
 
 el('voice-delete-all-btn').addEventListener('click', async () => {
-  if (!confirm('Delete ALL voice recordings? This cannot be undone!')) return;
-  await VoiceManager.deleteAll();
-  await loadVoiceRecordings();
-  el('voice-status').textContent = '🗑️ All recordings deleted.';
+  if (!confirm('Delete ALL audio recordings from ALL words? This cannot be undone!')) return;
+  
+  words.forEach(w => {
+    delete w.audioData;
+    delete w.audioFile;
+    delete w.audioType;
+  });
+  
+  refreshTable();
+  populateWordSelect();
+  renderVoiceList();
+  updateVoiceCount();
+  
+  el('voice-status').textContent = '🗑️ All audio deleted.';
   el('voice-status').className = 'status';
   setTimeout(() => { el('voice-status').textContent = ''; }, 3000);
+});
+
+// Toggle debug mode
+el('voice-status').addEventListener('dblclick', () => {
+  debugMode = !debugMode;
+  const debugEl = el('voice-debug');
+  if (!debugMode) {
+    debugEl.style.display = 'none';
+  } else {
+    debugEl.style.display = 'block';
+    logDebug('Debug mode enabled');
+  }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -1018,14 +1361,31 @@ document.addEventListener('keydown', (e) => {
 //  INIT
 // ================================================================
 async function init() {
-  await VoiceManager.init();
-  await loadVoiceRecordings();
-  updateTokenSavedTag();
-  refreshTable();
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    el('voice-record-btn').disabled = true;
-    el('voice-status').textContent = '⚠️ Microphone not supported in this browser.';
+  try {
+    updateTokenSavedTag();
+    refreshTable();
+    populateWordSelect();
+    updateVoiceCount();
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      el('voice-record-btn').disabled = true;
+      el('voice-status').textContent = '⚠️ Microphone not supported in this browser or HTTPS required.';
+      el('voice-status').className = 'status error';
+    }
+    
+    logDebug('App initialized');
+    
+    // Try to unlock audio on any user interaction
+    document.addEventListener('touchstart', () => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    }, { once: true });
+    
+  } catch (err) {
+    console.error('Init error:', err);
+    el('voice-status').textContent = '❌ Initialization error: ' + err.message;
     el('voice-status').className = 'status error';
   }
 }
