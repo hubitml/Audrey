@@ -1,5 +1,5 @@
 // ================================================================
-//  GAME - VERBS MODE
+//  GAME - VERBS MODE (with Audio)
 // ================================================================
 const VerbsMode = {
   start(pool) {
@@ -59,7 +59,7 @@ const VerbsMode = {
     }
 
     const wordDisplay = $('mc-word');
-    const speakerHTML = await AudioHelper.getSpeakerHTML(displayWord);
+    const speakerHTML = AudioHelper.getSpeakerHTML(displayWord);
     wordDisplay.innerHTML = wordText + ' ' + speakerHTML;
 
     const pool = WordManager.getActivePool();
@@ -69,7 +69,7 @@ const VerbsMode = {
       return compare !== (isReversed ? verb.word : verb.translation);
     })).slice(0, 3);
     const optionItems = Utils.shuffle([verb, ...distractors]);
-    options = await Promise.all(optionItems.map(async item => {
+    options = optionItems.map(item => {
       const isCorrect = (isReversed ? item.word : item.translation) === (isReversed ? verb.word : verb.translation);
       return {
         text: isReversed ? item.word : item.translation,
@@ -77,7 +77,7 @@ const VerbsMode = {
         isCorrect: isCorrect,
         wordObj: item
       };
-    }));
+    });
 
     const container = $('mc-options');
     container.innerHTML = '';
@@ -85,10 +85,29 @@ const VerbsMode = {
       const opt = options[idx];
       const btn = document.createElement('button');
       btn.className = 'option-btn';
-      btn.innerHTML = `<span class="option-text">${opt.text}</span>`;
+      
+      let speakerHTML = '';
+      if (isReversed && opt.wordObj) {
+        speakerHTML = AudioHelper.getSpeakerHTML(opt.wordObj, '18px');
+      }
+      
+      btn.innerHTML = speakerHTML + `<span class="option-text">${opt.text}</span>`;
       btn.dataset.index = idx;
       btn.addEventListener('click', () => this.handleMCAnswer(idx, options));
       container.appendChild(btn);
+    }
+
+    // Auto-play audio for the verb
+    if (AudioHelper.hasAudio(verb)) {
+      setTimeout(async () => {
+        if (!v._mcAnswered) {
+          try {
+            await AudioHelper.playAudio(verb);
+          } catch (err) {
+            // Silent fail for auto-play
+          }
+        }
+      }, 500);
     }
   },
 
@@ -126,6 +145,12 @@ const VerbsMode = {
       if (options[i].isCorrect) b.classList.add('correct');
       if (i === index && !isCorrect) b.classList.add('wrong');
     });
+
+    // Stop any playing audio
+    if (AudioHelper._currentAudio) {
+      AudioHelper._currentAudio.pause();
+      AudioHelper._currentAudio = null;
+    }
 
     setTimeout(() => {
       v._mcAnswered = false;
@@ -173,11 +198,19 @@ const VerbsMode = {
 
   endGame() {
     const v = State.verbs;
+    if (AudioHelper._currentAudio) {
+      AudioHelper._currentAudio.pause();
+      AudioHelper._currentAudio = null;
+    }
     Game.end(v.score, v.totalAttempts);
   },
 
   quit() {
     const v = State.verbs;
+    if (AudioHelper._currentAudio) {
+      AudioHelper._currentAudio.pause();
+      AudioHelper._currentAudio = null;
+    }
     Game.end(v.score, v.totalAttempts);
   }
 };
