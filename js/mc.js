@@ -1,5 +1,5 @@
 // ================================================================
-//  GAME - MULTIPLE CHOICE
+//  GAME - MULTIPLE CHOICE (with Audio)
 // ================================================================
 const MC = {
   start(pool) {
@@ -18,11 +18,25 @@ const MC = {
     mc.hearts = CONFIG.MAX_HEARTS;
     mc.answered = false;
     mc.wrongAttemptRecorded = false;
+    mc.audioPlayed = false;
 
     UI.show('mc');
     this.render();
     $('mc-quit-btn').classList.remove('hidden');
     $('mc-quit-btn').onclick = () => this.quit();
+    
+    // Check audio availability
+    this.checkAudioAvailability();
+  },
+
+  checkAudioAvailability() {
+    const withAudio = State.mc.pool.filter(w => AudioHelper.hasAudio(w));
+    if (withAudio.length === 0) {
+      UI.showToast('ℹ️ No audio files found. Record words in the Editor and upload to GitHub.', 'info');
+    } else {
+      // Preload audio for current batch
+      AudioHelper.preloadAudioBatch(withAudio.slice(0, 10));
+    }
   },
 
   async render() {
@@ -50,6 +64,7 @@ const MC = {
     mc.currentItem = mc.queue[mc.index];
     mc.answered = false;
     mc.wrongAttemptRecorded = false;
+    mc.audioPlayed = false;
 
     let wordText, displayWord;
     if (isCategoryMode) {
@@ -66,7 +81,7 @@ const MC = {
     const wordDisplay = $('mc-word');
     let speakerHTML = '';
     if (!isReversed) {
-      speakerHTML = await AudioHelper.getSpeakerHTML(displayWord);
+      speakerHTML = AudioHelper.getSpeakerHTML(displayWord);
     }
     wordDisplay.innerHTML = wordText + ' ' + speakerHTML;
 
@@ -98,7 +113,7 @@ const MC = {
       })).slice(0, 3);
 
       const optionItems = Utils.shuffle([mc.currentItem, ...distractors]);
-      options = await Promise.all(optionItems.map(async item => {
+      options = optionItems.map(item => {
         const isCorrect = (isReversed ? item.word : item.translation) === correctTranslation;
         return {
           text: isReversed ? item.word : item.translation,
@@ -106,7 +121,7 @@ const MC = {
           isCorrect: isCorrect,
           wordObj: item
         };
-      }));
+      });
     }
 
     mc.currentOptions = options;
@@ -121,13 +136,27 @@ const MC = {
       
       let speakerHTML = '';
       if (isReversed && opt.wordObj) {
-        speakerHTML = await AudioHelper.getSpeakerHTML(opt.wordObj, '18px');
+        speakerHTML = AudioHelper.getSpeakerHTML(opt.wordObj, '18px');
       }
       
       btn.innerHTML = speakerHTML + `<span class="option-text">${opt.text}</span>`;
       btn.dataset.index = idx;
       btn.addEventListener('click', () => this.handleAnswer(idx));
       container.appendChild(btn);
+    }
+
+    // Auto-play audio for the current word (with delay)
+    if (!isCategoryMode && AudioHelper.hasAudio(mc.currentItem)) {
+      setTimeout(async () => {
+        if (!mc.answered && !mc.audioPlayed) {
+          mc.audioPlayed = true;
+          try {
+            await AudioHelper.playAudio(mc.currentItem);
+          } catch (err) {
+            // Silent fail for auto-play
+          }
+        }
+      }, 500);
     }
   },
 
@@ -188,6 +217,12 @@ const MC = {
       btn.classList.add('correct');
       UI.disableAllOptions();
 
+      // Stop any playing audio
+      if (AudioHelper._currentAudio) {
+        AudioHelper._currentAudio.pause();
+        AudioHelper._currentAudio = null;
+      }
+
       setTimeout(() => {
         mc.index++;
         this.render();
@@ -202,11 +237,20 @@ const MC = {
 
   endGame() {
     const mc = State.mc;
+    // Stop any playing audio
+    if (AudioHelper._currentAudio) {
+      AudioHelper._currentAudio.pause();
+      AudioHelper._currentAudio = null;
+    }
     Game.end(mc.score, mc.totalAttempts);
   },
 
   quit() {
     const mc = State.mc;
+    if (AudioHelper._currentAudio) {
+      AudioHelper._currentAudio.pause();
+      AudioHelper._currentAudio = null;
+    }
     Game.end(mc.score, mc.totalAttempts);
   }
 };
