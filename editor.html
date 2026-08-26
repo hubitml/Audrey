@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  /* ---------- styles ---------- */
   :root{
     --ink:#1B2430;
     --surface:#232E3D;
@@ -155,8 +154,6 @@
     color:var(--sage);
     margin-top:6px;
   }
-
-  /* Voice manager styles */
   .voice-item{
     display:flex;
     justify-content:space-between;
@@ -247,7 +244,6 @@
   .audio-status-badge.local { background:var(--amber); color:var(--ink); }
   .audio-status-badge.none { background:var(--surface-2); color:var(--paper-dim); }
   
-  /* Audio player */
   .audio-player {
     width: 100%;
     max-width: 200px;
@@ -399,6 +395,11 @@ const Utils = {
   audioFileName: (word, translation) => {
     const clean = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '_');
     return `audio/${clean(word)}_${clean(translation)}.webm`;
+  },
+  // Get the full URL for an audio file on GitHub
+  audioUrl: (fileName) => {
+    if (!fileName) return null;
+    return `https://raw.githubusercontent.com/hubitml/Audrey/main/${fileName}`;
   }
 };
 const PRONOUNS = ["ja", "ty", "my", "wy", "on/ona/ono", "oni"];
@@ -583,7 +584,7 @@ el('table-replace-btn').addEventListener('click', () => {
 });
 
 // ================================================================
-//  GITHUB - LOAD & SAVE (with separate audio files)
+//  GITHUB - LOAD & SAVE
 // ================================================================
 const GH_OWNER = 'hubitml';
 const GH_REPO = 'Audrey';
@@ -641,7 +642,6 @@ async function saveFile(token, path, content, sha){
 async function uploadAudioFile(token, fileName, audioBlob) {
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${fileName}`;
   
-  // Convert blob to base64
   const reader = new FileReader();
   const base64 = await new Promise((resolve) => {
     reader.onloadend = () => {
@@ -657,7 +657,6 @@ async function uploadAudioFile(token, fileName, audioBlob) {
     branch: GH_BRANCH
   };
   
-  // Check if file exists to get SHA
   try {
     const existing = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
@@ -667,7 +666,7 @@ async function uploadAudioFile(token, fileName, audioBlob) {
       body.sha = data.sha;
     }
   } catch (e) {
-    // File doesn't exist, that's fine
+    // File doesn't exist
   }
   
   const res = await fetch(url, {
@@ -720,46 +719,6 @@ async function uploadAllAudio(token) {
   return { uploaded, failed };
 }
 
-// Load audio files from GitHub
-async function loadAudioFile(token, fileName) {
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${fileName}?ref=${GH_BRANCH}`;
-  const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
-  });
-  
-  if (!res.ok) {
-    return null;
-  }
-  
-  const data = await res.json();
-  // Return the base64 content
-  return data.content;
-}
-
-async function loadAllAudio(token) {
-  const withAudio = words.filter(w => w.audioFile && w.audioFile.length > 0);
-  let loaded = 0;
-  let failed = 0;
-  
-  for (const word of withAudio) {
-    try {
-      const audioData = await loadAudioFile(token, word.audioFile);
-      if (audioData) {
-        word.audioData = audioData;
-        loaded++;
-        logDebug(`Loaded audio: ${word.audioFile}`);
-      } else {
-        failed++;
-      }
-    } catch (err) {
-      failed++;
-      console.error(`Failed to load ${word.word}:`, err);
-    }
-  }
-  
-  return { loaded, failed };
-}
-
 // ===== GITHUB LOAD/SAVE =====
 el('github-load-btn').addEventListener('click', async () => {
   const status = el('github-status');
@@ -799,15 +758,12 @@ el('github-load-btn').addEventListener('click', async () => {
 
     words = [...loadedWords, ...loadedVerbs];
     
-    // Load audio files for words that have audioFile references
-    status.textContent = 'Loading audio files...';
-    const audioResult = await loadAllAudio(token);
-    
     refreshTable();
     populateWordSelect();
     updateVoiceCount();
     
-    status.textContent = `Loaded ${words.length} words (${audioResult.loaded} audio files).`;
+    const audioCount = words.filter(w => w.audioFile).length;
+    status.textContent = `Loaded ${words.length} words (${audioCount} with audio).`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Load failed: ' + err.message;
@@ -823,11 +779,7 @@ el('github-save-btn').addEventListener('click', async () => {
   status.textContent = 'Saving…';
   status.className = 'status';
   try {
-    // Upload audio files first
-    status.textContent = 'Uploading audio files...';
-    const audioResult = await uploadAllAudio(token);
-    
-    // Separate words and verbs (but keep audioFile references)
+    // Separate words and verbs
     const wordsOnly = words.filter(w => !w.conjugations || !Array.isArray(w.conjugations) || w.conjugations.length !== 6);
     const verbsOnly = words.filter(w => w.conjugations && Array.isArray(w.conjugations) && w.conjugations.length === 6);
 
@@ -853,7 +805,7 @@ el('github-save-btn').addEventListener('click', async () => {
     currentFileShaVerbs = newShaVerbs;
 
     const audioCount = words.filter(w => w.audioFile).length;
-    status.textContent = `Saved ${wordsOnly.length} words and ${verbsOnly.length} verbs (${audioCount} with audio, ${audioResult.uploaded} uploaded).`;
+    status.textContent = `Saved ${wordsOnly.length} words and ${verbsOnly.length} verbs (${audioCount} with audio).`;
     status.className = 'status';
   } catch (err) {
     status.textContent = 'Save failed: ' + err.message;
@@ -863,7 +815,7 @@ el('github-save-btn').addEventListener('click', async () => {
 });
 
 // ================================================================
-//  VOICE RECORDING - Store as separate files
+//  VOICE RECORDING
 // ================================================================
 let voiceIsRecording = false;
 let voicePending = null;
@@ -993,7 +945,6 @@ async function startVoiceRecording() {
       } 
     });
     
-    // Use opus codec for better quality
     let mimeType = 'audio/webm;codecs=opus';
     if (!MediaRecorder.isTypeSupported(mimeType)) {
       mimeType = 'audio/webm';
@@ -1146,21 +1097,32 @@ function playAudioFromData(audioData, mimeType = 'audio/webm') {
     audio.onended = () => URL.revokeObjectURL(url);
     audio.onerror = (e) => {
       console.warn('Playback error:', e);
-      // Try iOS-friendly fallback
-      const fallbackAudio = new Audio();
-      fallbackAudio.src = url;
-      fallbackAudio.play().catch(err => console.warn('Fallback play failed:', err));
     };
     
     audio.play().catch(err => {
       console.warn('Play failed:', err);
-      // iOS often needs user interaction to play
       el('voice-status').textContent = '⚠️ Tap play again to hear audio (iOS requires user interaction).';
       el('voice-status').className = 'status error';
     });
     
     return audio;
     
+  } catch (err) {
+    console.error('Play error:', err);
+    throw err;
+  }
+}
+
+function playAudioFromUrl(url) {
+  try {
+    const audio = new Audio(url);
+    audio.onerror = (e) => {
+      console.warn('Playback error:', e);
+    };
+    audio.play().catch(err => {
+      console.warn('Play failed:', err);
+    });
+    return audio;
   } catch (err) {
     console.error('Play error:', err);
     throw err;
@@ -1240,60 +1202,45 @@ window.playVoice = function(wordKey) {
       return;
     }
     
-    // Check if we have audio data
-    let audioData = word.audioData;
-    
-    if (!audioData && word.audioFile) {
-      // We need to load from GitHub first
-      el('voice-status').textContent = '📥 Loading audio from GitHub...';
-      el('voice-status').className = 'status';
-      
-      const token = getToken();
-      if (!token) {
-        el('voice-status').textContent = '❌ Need GitHub token to load audio.';
+    // If we have an audioFile, play from GitHub
+    if (word.audioFile) {
+      const url = Utils.audioUrl(word.audioFile);
+      if (!url) {
+        el('voice-status').textContent = '⚠️ No audio URL found.';
         el('voice-status').className = 'status error';
         return;
       }
       
-      loadAudioFile(token, word.audioFile).then(data => {
-        if (data) {
-          word.audioData = data;
-          playAudioFromData(data, word.audioType || 'audio/webm');
-          el('voice-status').textContent = '▶️ Playing...';
-          el('voice-status').className = 'status';
-          setTimeout(() => {
-            if (el('voice-status').textContent === '▶️ Playing...') {
-              el('voice-status').textContent = '';
-            }
-          }, 3000);
-        } else {
-          el('voice-status').textContent = '❌ Could not load audio from GitHub.';
-          el('voice-status').className = 'status error';
+      el('voice-status').textContent = '▶️ Playing from GitHub...';
+      el('voice-status').className = 'status';
+      
+      playAudioFromUrl(url);
+      
+      setTimeout(() => {
+        if (el('voice-status').textContent === '▶️ Playing from GitHub...') {
+          el('voice-status').textContent = '';
         }
-      }).catch(err => {
-        console.error('Load error:', err);
-        el('voice-status').textContent = '❌ Load error: ' + err.message;
-        el('voice-status').className = 'status error';
-      });
+      }, 3000);
       return;
     }
     
-    if (!audioData) {
-      el('voice-status').textContent = '⚠️ No audio found for this word.';
-      el('voice-status').className = 'status error';
+    // Otherwise play from local data
+    if (word.audioData) {
+      el('voice-status').textContent = '▶️ Playing...';
+      el('voice-status').className = 'status';
+      
+      playAudioFromData(word.audioData, word.audioType || 'audio/webm');
+      
+      setTimeout(() => {
+        if (el('voice-status').textContent === '▶️ Playing...') {
+          el('voice-status').textContent = '';
+        }
+      }, 3000);
       return;
     }
     
-    el('voice-status').textContent = '▶️ Playing...';
-    el('voice-status').className = 'status';
-    
-    playAudioFromData(audioData, word.audioType || 'audio/webm');
-    
-    setTimeout(() => {
-      if (el('voice-status').textContent === '▶️ Playing...') {
-        el('voice-status').textContent = '';
-      }
-    }, 3000);
+    el('voice-status').textContent = '⚠️ No audio found for this word.';
+    el('voice-status').className = 'status error';
     
   } catch (err) {
     console.error('Play error:', err);
@@ -1375,7 +1322,6 @@ async function init() {
     
     logDebug('App initialized');
     
-    // Try to unlock audio on any user interaction
     document.addEventListener('touchstart', () => {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state === 'suspended') {
